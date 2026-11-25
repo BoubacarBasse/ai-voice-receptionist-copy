@@ -1,0 +1,3860 @@
+{
+ "W1 Appointment Logger": {
+  "name": "{{SHOP_NAME}} — Appointment Logger",
+  "nodes": [
+   {
+    "parameters": {
+     "httpMethod": "POST",
+     "path": "{{SLUG}}-appointment",
+     "responseMode": "responseNode",
+     "options": {}
+    },
+    "id": "wh",
+    "name": "Webhook",
+    "type": "n8n-nodes-base.webhook",
+    "typeVersion": 2,
+    "position": [
+     240,
+     2176
+    ],
+    "webhookId": "ab358469-6364-482a-97e5-9fbffc25dff7"
+   },
+   {
+    "parameters": {
+     "method": "POST",
+     "url": "https://automa1ons.app.n8n.cloud/webhook/retell-secret-bridge-4f9d",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "httpHeaderAuth",
+     "options": {}
+    },
+    "id": "gs",
+    "name": "Get Webhook Secret",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     464,
+     2176
+    ],
+    "credentials": {
+     "httpHeaderAuth": {
+      "id": "5GNmnYcLETYaLBrB",
+      "name": "Retell API Key"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "parameters": {
+     "jsCode": "const crypto = require('crypto');\nconst webhookData = $('Webhook').first().json;\nconst sigHeader = webhookData.headers['x-retell-signature'];\nif (!sigHeader) { return [{ json: { valid: false, reason: 'missing_signature_header' } }]; }\nconst match = sigHeader.match(/^v=(\\d+),d=([0-9a-f]+)$/i);\nif (!match) { return [{ json: { valid: false, reason: 'malformed_signature_header' } }]; }\nconst timestamp = match[1];\nconst receivedDigest = match[2];\nconst ageMs = Date.now() - parseInt(timestamp, 10);\nif (ageMs > 5 * 60 * 1000 || ageMs < -30000) { return [{ json: { valid: false, reason: 'timestamp_outside_window' } }]; }\nconst bridgeRaw = $('Get Webhook Secret').first().json;\nconst apiKey = (Array.isArray(bridgeRaw) ? bridgeRaw[0] : bridgeRaw)?.secret || '';\nif (!apiKey) { return [{ json: { valid: false, reason: 'api_key_unavailable' } }]; }\nconst rawBody = JSON.stringify(webhookData.body);\nconst message = rawBody + timestamp;\nconst computedBuf = crypto.createHmac('sha256', apiKey).update(message, 'utf8').digest();\nconst receivedBuf = Buffer.from(receivedDigest, 'hex');\nif (computedBuf.length !== receivedBuf.length) { return [{ json: { valid: false, reason: 'signature_invalid' } }]; }\nif (!crypto.timingSafeEqual(computedBuf, receivedBuf)) { return [{ json: { valid: false, reason: 'signature_mismatch' } }]; }\nreturn $('Webhook').all().map(item => ({ json: { valid: true, ...item.json } }));"
+    },
+    "id": "hv",
+    "name": "HMAC Signature Verify",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     688,
+     2176
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "hqc",
+        "leftValue": "={{ $json.valid }}",
+        "rightValue": true,
+        "operator": {
+         "type": "boolean",
+         "operation": "equals"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "hq",
+    "name": "HMAC Valid?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     912,
+     2176
+    ]
+   },
+   {
+    "parameters": {
+     "respondWith": "json",
+     "responseBody": "{\"success\": false, \"error\": \"Unauthorized\"}",
+     "options": {
+      "responseCode": 401
+     }
+    },
+    "id": "r401",
+    "name": "Respond 401 Unauthorized",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": [
+     1136,
+     2272
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "c1",
+        "leftValue": "={{ $json.body.name }}",
+        "rightValue": "",
+        "operator": {
+         "type": "string",
+         "operation": "notEmpty",
+         "singleValue": true
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "val",
+    "name": "Validate",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     1360,
+     2080
+    ]
+   },
+   {
+    "parameters": {
+     "respondWith": "json",
+     "responseBody": "{\"success\":false,\"error\":\"Invalid request — function name required\"}",
+     "options": {
+      "responseCode": 400
+     }
+    },
+    "id": "r400i",
+    "name": "Respond 400 Invalid",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": [
+     1584,
+     2176
+    ]
+   },
+   {
+    "parameters": {
+     "rules": {
+      "values": [
+       {
+        "conditions": {
+         "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 1
+         },
+         "conditions": [
+          {
+           "leftValue": "={{ $json.body.name }}",
+           "rightValue": "log_appointment",
+           "operator": {
+            "type": "string",
+            "operation": "equals"
+           }
+          }
+         ],
+         "combinator": "and"
+        }
+       },
+       {
+        "conditions": {
+         "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 1
+         },
+         "conditions": [
+          {
+           "leftValue": "={{ $json.body.name }}",
+           "rightValue": "update_appointment",
+           "operator": {
+            "type": "string",
+            "operation": "equals"
+           }
+          }
+         ],
+         "combinator": "and"
+        }
+       },
+       {
+        "conditions": {
+         "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 1
+         },
+         "conditions": [
+          {
+           "leftValue": "={{ $json.body.name }}",
+           "rightValue": "cancel_appointment",
+           "operator": {
+            "type": "string",
+            "operation": "equals"
+           }
+          }
+         ],
+         "combinator": "and"
+        }
+       },
+       {
+        "conditions": {
+         "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 1
+         },
+         "conditions": [
+          {
+           "leftValue": "={{ $json.body.name }}",
+           "rightValue": "get_current_datetime",
+           "operator": {
+            "type": "string",
+            "operation": "equals"
+           }
+          }
+         ],
+         "combinator": "and"
+        }
+       },
+       {
+        "conditions": {
+         "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 1
+         },
+         "conditions": [
+          {
+           "leftValue": "={{ $json.body.name }}",
+           "rightValue": "find_appointment",
+           "operator": {
+            "type": "string",
+            "operation": "equals"
+           }
+          }
+         ],
+         "combinator": "and"
+        }
+       },
+       {
+        "conditions": {
+         "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 1
+         },
+         "conditions": [
+          {
+           "leftValue": "={{ $json.body.name }}",
+           "rightValue": "log_callback",
+           "operator": {
+            "type": "string",
+            "operation": "equals"
+           }
+          }
+         ],
+         "combinator": "and"
+        }
+       }
+      ]
+     },
+     "options": {
+      "fallbackOutput": "extra"
+     }
+    },
+    "id": "route",
+    "name": "Route",
+    "type": "n8n-nodes-base.switch",
+    "typeVersion": 3,
+    "position": [
+     1584,
+     1824
+    ]
+   },
+   {
+    "parameters": {
+     "respondWith": "json",
+     "responseBody": "{\"success\":false,\"error\":\"Unknown function name\"}",
+     "options": {
+      "responseCode": 400
+     }
+    },
+    "id": "r400u",
+    "name": "Respond 400 Unknown",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": [
+     1808,
+     2080
+    ]
+   },
+   {
+    "parameters": {
+     "url": "https://www.googleapis.com/calendar/v3/calendars/{{CALENDAR_ID_ENC}}/events",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleCalendarOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "=call_id:{{ $('Webhook').first().json.body.call.call_id }}"
+       },
+       {
+        "name": "timeMin",
+        "value": "={{ new Date(Date.now()-86400000).toISOString() }}"
+       },
+       {
+        "name": "singleEvents",
+        "value": "true"
+       },
+       {
+        "name": "maxResults",
+        "value": "5"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "idem",
+    "name": "Idempotency Check",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1808,
+     320
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "ef1",
+        "leftValue": "={{ ($json.items || []).length }}",
+        "rightValue": 0,
+        "operator": {
+         "type": "number",
+         "operation": "gt"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "ef",
+    "name": "Event Found?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     2032,
+     240
+    ]
+   },
+   {
+    "parameters": {
+     "assignments": {
+      "assignments": [
+       {
+        "id": "re1",
+        "name": "event_id",
+        "value": "={{ $json.items[0].id }}",
+        "type": "string"
+       },
+       {
+        "id": "re2",
+        "name": "action",
+        "value": "duplicate_skipped",
+        "type": "string"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "ree",
+    "name": "Return Existing Event",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     3376,
+     64
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const args=$('Webhook').first().json.body.args||{};\nconst rawDate=args.preferred_date, rawTime=args.preferred_time;\nif(!rawDate) throw new Error('preferred_date required');\nif(!rawTime) throw new Error('preferred_time required');\nlet dateISO;\nconst iso=rawDate.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\nif(iso){dateISO=rawDate;}else{\n const now=new Date();\n let p=new Date(rawDate+' '+now.getFullYear());\n if(isNaN(p.getTime())) throw new Error('Cannot parse date: '+rawDate);\n if(p<new Date(now.getTime()-86400000)) p=new Date(rawDate+' '+(now.getFullYear()+1));\n dateISO=`${p.getFullYear()}-${String(p.getMonth()+1).padStart(2,'0')}-${String(p.getDate()).padStart(2,'0')}`;\n}\nlet h,mi;\nconst t24=rawTime.match(/^(\\d{1,2}):(\\d{2})$/);\nconst tAP=rawTime.match(/^(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)$/i);\nif(t24){h=parseInt(t24[1]);mi=parseInt(t24[2]);}\nelse if(tAP){h=parseInt(tAP[1]);mi=parseInt(tAP[2]||'0');if(tAP[3].toLowerCase()==='pm'&&h<12)h+=12;if(tAP[3].toLowerCase()==='am'&&h===12)h=0;}\nelse throw new Error('Cannot parse time: '+rawTime);\nconst [y,mo,dy]=dateISO.split('-').map(Number);\nconst dow=new Date(y,mo-1,dy).getDay();\nif(dow===0) return [{json:{outside_clinic_hours:true,message:'The shop is closed on Sundays. We are open {{HOURS_SPOKEN}}.'}}];\nif(h<9||h>17||(h===17&&mi>0)) return [{json:{outside_clinic_hours:true,message:'That time is outside shop hours. We are open {{HOURS_SPOKEN}} — the last appointment is {{LAST_APPOINTMENT_SPOKEN}}.'}}];\n\nfunction wpgOffset(dateISO,h,mi){\n  const pad=n=>String(n).padStart(2,'0');\n  for(const off of ['-05:00','-06:00']){\n    const d=new Date(`${dateISO}T${pad(h)}:${pad(mi)}:00${off}`);\n    const s=new Intl.DateTimeFormat('en-CA',{timeZone:'{{TIMEZONE}}',hour12:false,hour:'2-digit',minute:'2-digit'}).format(d);\n    if(s===`${pad(h)}:${pad(mi)}`) return off;\n  }\n  return '-06:00';\n}\n\nconst off=wpgOffset(dateISO,h,mi);\nconst pad=n=>String(n).padStart(2,'0');\nconst startStr=`${dateISO}T${pad(h)}:${pad(mi)}:00${off}`;\nconst endM=h*60+mi+60;\nconst endStr=`${dateISO}T${pad(Math.floor(endM/60))}:${pad(endM%60)}:00${off}`;\nreturn [{json:{preferred_date:dateISO,preferred_time:`${pad(h)}:${pad(mi)}`,event_start:startStr,event_end:endStr,day_min:`${dateISO}T09:00:00${off}`,day_max:`${dateISO}T18:00:00${off}`}}];"
+    },
+    "id": "pdt",
+    "name": "Parse Datetime",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2256,
+     336
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "ohbc",
+        "leftValue": "={{ $json.outside_clinic_hours }}",
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        },
+        "rightValue": ""
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "ohb",
+    "name": "IF Outside Hours Booking",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     2480,
+     336
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const wb=$('Webhook').first().json.body;\nconst d=$input.first().json;\nreturn [{json:{success:false,outside_clinic_hours:true,message:d.message||'The shop is open {{HOURS_SPOKEN}}.',call_id:wb.call.call_id}}];"
+    },
+    "id": "bohr",
+    "name": "Build Outside Hours Response",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2704,
+     784
+    ]
+   },
+   {
+    "parameters": {
+     "url": "https://www.googleapis.com/calendar/v3/calendars/{{CALENDAR_ID_ENC}}/events",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleCalendarOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "timeMin",
+        "value": "={{ $('Parse Datetime').first().json.day_min }}"
+       },
+       {
+        "name": "timeMax",
+        "value": "={{ $('Parse Datetime').first().json.day_max }}"
+       },
+       {
+        "name": "singleEvents",
+        "value": "true"
+       },
+       {
+        "name": "orderBy",
+        "value": "startTime"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "qde",
+    "name": "Query Day Events",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     2704,
+     256
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "parameters": {
+     "jsCode": "const pd=$('Parse Datetime').first().json;\nconst tStart=new Date(pd.event_start), tEnd=new Date(pd.event_end);\nconst dateISO=pd.preferred_date;\nconst events=($input.first().json.items||[]).filter(ev=>ev.id);\nconst conflicts=events.filter(ev=>{\n  const eS=new Date(ev.start?.dateTime||ev.start?.date||'');\n  const eE=new Date(ev.end?.dateTime||ev.end?.date||'');\n  if(isNaN(eS.getTime())||isNaN(eE.getTime())) return false;\n  return !(tEnd<=eS||tStart>=eE);\n});\nif(!conflicts.length) return [{json:{available:true,event_start:pd.event_start,event_end:pd.event_end,preferred_date:dateISO,preferred_time:pd.preferred_time}}];\nconst occupied=events.map(ev=>({s:new Date(ev.start?.dateTime||ev.start?.date||''),e:new Date(ev.end?.dateTime||ev.end?.date||'')})).filter(e=>!isNaN(e.s.getTime()));\nconst tzMatch=pd.event_start.match(/([+-])(\\d{2}):(\\d{2})$/);\nconst utcOffsetHrs=tzMatch?parseInt(tzMatch[2])*(tzMatch[1]==='-'?1:-1):0;\nconst utcOffsetMin=tzMatch?parseInt(tzMatch[3])*(tzMatch[1]==='-'?1:-1):0;\nconst [yr,mn,dd]=dateISO.split('-').map(Number);\nconst free=[];\nfor(let m=9*60;m+30<=18*60;m+=30){\n  const localH=Math.floor(m/60),localM=m%60;\n  const sS=new Date(Date.UTC(yr,mn-1,dd,localH+utcOffsetHrs,localM+utcOffsetMin));\n  const sE=new Date(sS.getTime()+30*60000);\n  if(!occupied.some(e=>!(sE<=e.s||sS>=e.e))) free.push({s:sS,m});\n}\nconst localMatch=pd.event_start.match(/T(\\d{2}):(\\d{2})/);\nconst tM=localMatch?parseInt(localMatch[1])*60+parseInt(localMatch[2]):0;\nfree.sort((a,b)=>Math.abs(a.m-tM)-Math.abs(b.m-tM));\nconst near=free.slice(0,2);\nconst MO=['January','February','March','April','May','June','July','August','September','October','November','December'];\nconst DA=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst dO=new Date(yr,mn-1,dd);\nconst ord=n=>{if(n>3&&n<21)return'th';switch(n%10){case 1:return'st';case 2:return'nd';case 3:return'rd';default:return'th';}};\nconst fmt=s=>{\n  const hh=(s.s.getUTCHours()-utcOffsetHrs+24)%24;\n  const mm=(s.s.getUTCMinutes()-utcOffsetMin+60)%60;\n  const ap=hh<12?'AM':'PM';\n  const h12=hh%12||12;\n  return `${DA[dO.getDay()]}, ${MO[dO.getMonth()]} ${dd}${ord(dd)} at ${h12}${mm?':'+String(mm).padStart(2,'0'):''} ${ap}`;\n};\nreturn [{json:{available:false,conflict:true,alternatives:near.map(fmt),preferred_date:dateISO,preferred_time:pd.preferred_time}}];"
+    },
+    "id": "ca",
+    "name": "Check Availability",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2928,
+     256
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "iac",
+        "leftValue": "={{ $json.available }}",
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        },
+        "rightValue": ""
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "ia",
+    "name": "IF Available?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     3152,
+     256
+    ]
+   },
+   {
+    "parameters": {
+     "calendar": {
+      "__rl": true,
+      "value": "{{CALENDAR_ID}}",
+      "mode": "id"
+     },
+     "start": "={{ $json.event_start }}",
+     "end": "={{ $json.event_end }}",
+     "additionalFields": {
+      "description": "={{ $('Webhook').first().json.body.args.customer_name + ' | ' + $('Normalize Args').first().json.phone_clean + ' | ' + $('Webhook').first().json.body.args.vehicle + ' | ' + $('Webhook').first().json.body.args.service + ' | call_id:' + $('Webhook').first().json.body.call.call_id }}",
+      "summary": "Appointment — {{SHOP_NAME}}"
+     }
+    },
+    "id": "ce",
+    "name": "Create Event",
+    "type": "n8n-nodes-base.googleCalendar",
+    "typeVersion": 1,
+    "position": [
+     3376,
+     256
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "parameters": {
+     "jsCode": "const wb=$('Webhook').first().json.body;\nconst d=$input.first().json;\nreturn [{json:{success:false,available:false,conflict:true,alternatives:d.alternatives||[],call_id:wb.call.call_id}}];"
+    },
+    "id": "bcr",
+    "name": "Build Conflict Response",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3376,
+     528
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const args=$('Webhook').first().json.body.args||{};\nconst rawDate=args.new_date, rawTime=args.new_time;\nif(!rawDate) throw new Error('new_date required');\nif(!rawTime) throw new Error('new_time required');\nlet dateISO;\nconst iso=rawDate.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\nif(iso){dateISO=rawDate;}else{\n const now=new Date();\n let p=new Date(rawDate+' '+now.getFullYear());\n if(isNaN(p.getTime())) throw new Error('Cannot parse date: '+rawDate);\n if(p<new Date(now.getTime()-86400000)) p=new Date(rawDate+' '+(now.getFullYear()+1));\n dateISO=`${p.getFullYear()}-${String(p.getMonth()+1).padStart(2,'0')}-${String(p.getDate()).padStart(2,'0')}`;\n}\nlet h,mi;\nconst t24=rawTime.match(/^(\\d{1,2}):(\\d{2})$/);\nconst tAP=rawTime.match(/^(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)$/i);\nif(t24){h=parseInt(t24[1]);mi=parseInt(t24[2]);}\nelse if(tAP){h=parseInt(tAP[1]);mi=parseInt(tAP[2]||'0');if(tAP[3].toLowerCase()==='pm'&&h<12)h+=12;if(tAP[3].toLowerCase()==='am'&&h===12)h=0;}\nelse throw new Error('Cannot parse time: '+rawTime);\nconst [y,mo,dy]=dateISO.split('-').map(Number);\nconst dow=new Date(y,mo-1,dy).getDay();\nif(dow===0) return [{json:{outside_clinic_hours:true,message:'The shop is closed on Sundays. We are open {{HOURS_SPOKEN}}.'}}];\nif(h<9||h>17||(h===17&&mi>0)) return [{json:{outside_clinic_hours:true,message:'That time is outside shop hours. We are open {{HOURS_SPOKEN}} — the last appointment is {{LAST_APPOINTMENT_SPOKEN}}.'}}];\n\nfunction wpgOffset(dateISO,h,mi){\n  const pad=n=>String(n).padStart(2,'0');\n  for(const off of ['-05:00','-06:00']){\n    const d=new Date(`${dateISO}T${pad(h)}:${pad(mi)}:00${off}`);\n    const s=new Intl.DateTimeFormat('en-CA',{timeZone:'{{TIMEZONE}}',hour12:false,hour:'2-digit',minute:'2-digit'}).format(d);\n    if(s===`${pad(h)}:${pad(mi)}`) return off;\n  }\n  return '-06:00';\n}\n\nconst off=wpgOffset(dateISO,h,mi);\nconst pad=n=>String(n).padStart(2,'0');\nconst startStr=`${dateISO}T${pad(h)}:${pad(mi)}:00${off}`;\nconst endM=h*60+mi+60;\nconst endStr=`${dateISO}T${pad(Math.floor(endM/60))}:${pad(endM%60)}:00${off}`;\nreturn [{json:{new_date:dateISO,new_time:`${pad(h)}:${pad(mi)}`,event_start:startStr,event_end:endStr,day_min:`${dateISO}T09:00:00${off}`,day_max:`${dateISO}T18:00:00${off}`}}];"
+    },
+    "id": "pnd",
+    "name": "Parse New Datetime",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2256,
+     1072
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "ohrc",
+        "leftValue": "={{ $json.outside_clinic_hours }}",
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        },
+        "rightValue": ""
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "ohr",
+    "name": "IF Outside Hours Reschedule",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     2480,
+     1072
+    ]
+   },
+   {
+    "parameters": {
+     "url": "https://www.googleapis.com/calendar/v3/calendars/{{CALENDAR_ID_ENC}}/events",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleCalendarOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "timeMin",
+        "value": "={{ $('Parse New Datetime').first().json.day_min }}"
+       },
+       {
+        "name": "timeMax",
+        "value": "={{ $('Parse New Datetime').first().json.day_max }}"
+       },
+       {
+        "name": "singleEvents",
+        "value": "true"
+       },
+       {
+        "name": "orderBy",
+        "value": "startTime"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "qdr",
+    "name": "Query Day Events Reschedule",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     2704,
+     1168
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "parameters": {
+     "jsCode": "const pd=$('Parse New Datetime').first().json;\nconst tStart=new Date(pd.event_start), tEnd=new Date(pd.event_end);\nconst dateISO=pd.new_date;\nconst excludeId=$('Webhook').first().json.body.args.event_id||null;\nconst events=($input.first().json.items||[]).filter(ev=>ev.id&&ev.id!==excludeId);\nconst conflicts=events.filter(ev=>{\n  const eS=new Date(ev.start?.dateTime||ev.start?.date||'');\n  const eE=new Date(ev.end?.dateTime||ev.end?.date||'');\n  if(isNaN(eS.getTime())||isNaN(eE.getTime())) return false;\n  return !(tEnd<=eS||tStart>=eE);\n});\nif(!conflicts.length) return [{json:{available:true,event_start:pd.event_start,event_end:pd.event_end,new_date:dateISO,new_time:pd.new_time}}];\nconst occupied=events.map(ev=>({s:new Date(ev.start?.dateTime||ev.start?.date||''),e:new Date(ev.end?.dateTime||ev.end?.date||'')})).filter(e=>!isNaN(e.s.getTime()));\nconst tzMatch=pd.event_start.match(/([+-])(\\d{2}):(\\d{2})$/);\nconst utcOffsetHrs=tzMatch?parseInt(tzMatch[2])*(tzMatch[1]==='-'?1:-1):0;\nconst utcOffsetMin=tzMatch?parseInt(tzMatch[3])*(tzMatch[1]==='-'?1:-1):0;\nconst [yr,mn,dd]=dateISO.split('-').map(Number);\nconst free=[];\nfor(let m=9*60;m+30<=18*60;m+=30){\n  const localH=Math.floor(m/60),localM=m%60;\n  const sS=new Date(Date.UTC(yr,mn-1,dd,localH+utcOffsetHrs,localM+utcOffsetMin));\n  const sE=new Date(sS.getTime()+30*60000);\n  if(!occupied.some(e=>!(sE<=e.s||sS>=e.e))) free.push({s:sS,m});\n}\nconst localMatch=pd.event_start.match(/T(\\d{2}):(\\d{2})/);\nconst tM=localMatch?parseInt(localMatch[1])*60+parseInt(localMatch[2]):0;\nfree.sort((a,b)=>Math.abs(a.m-tM)-Math.abs(b.m-tM));\nconst near=free.slice(0,2);\nconst MO=['January','February','March','April','May','June','July','August','September','October','November','December'];\nconst DA=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];\nconst dO=new Date(yr,mn-1,dd);\nconst ord=n=>{if(n>3&&n<21)return'th';switch(n%10){case 1:return'st';case 2:return'nd';case 3:return'rd';default:return'th';}};\nconst fmt=s=>{\n  const hh=(s.s.getUTCHours()-utcOffsetHrs+24)%24;\n  const mm=(s.s.getUTCMinutes()-utcOffsetMin+60)%60;\n  const ap=hh<12?'AM':'PM';\n  const h12=hh%12||12;\n  return `${DA[dO.getDay()]}, ${MO[dO.getMonth()]} ${dd}${ord(dd)} at ${h12}${mm?':'+String(mm).padStart(2,'0'):''} ${ap}`;\n};\nreturn [{json:{available:false,conflict:true,alternatives:near.map(fmt),new_date:dateISO,new_time:pd.new_time}}];"
+    },
+    "id": "car",
+    "name": "Check Availability Reschedule",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2928,
+     1296
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "iarc",
+        "leftValue": "={{ $json.available }}",
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        },
+        "rightValue": ""
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "iar",
+    "name": "IF Available Reschedule?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     3152,
+     1296
+    ]
+   },
+   {
+    "parameters": {
+     "operation": "update",
+     "calendar": {
+      "__rl": true,
+      "value": "{{CALENDAR_ID}}",
+      "mode": "id"
+     },
+     "eventId": "={{ $('Webhook').first().json.body.args.event_id }}",
+     "updateFields": {
+      "end": "={{ $json.event_end }}",
+      "start": "={{ $json.event_start }}"
+     }
+    },
+    "id": "ue",
+    "name": "Update Event",
+    "type": "n8n-nodes-base.googleCalendar",
+    "typeVersion": 1,
+    "position": [
+     3376,
+     1344
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "parameters": {
+     "operation": "delete",
+     "calendar": {
+      "__rl": true,
+      "value": "{{CALENDAR_ID}}",
+      "mode": "id"
+     },
+     "eventId": "={{ $('Webhook').first().json.body.args.event_id }}",
+     "options": {}
+    },
+    "id": "de",
+    "name": "Delete Event",
+    "type": "n8n-nodes-base.googleCalendar",
+    "typeVersion": 1,
+    "position": [
+     3376,
+     1776
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "parameters": {
+     "jsCode": "const now=new Date();\nconst opts={timeZone:'{{TIMEZONE}}',weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true};\nreturn [{json:{current_datetime:now.toLocaleString('en-CA',opts),timezone:'{{TIMEZONE}}'}}];"
+    },
+    "id": "now",
+    "name": "Get Current Datetime",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3600,
+     1936
+    ]
+   },
+   {
+    "parameters": {
+     "url": "https://www.googleapis.com/calendar/v3/calendars/{{CALENDAR_ID_ENC}}/events",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleCalendarOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "Appointment — {{SHOP_NAME}}"
+       },
+       {
+        "name": "timeMin",
+        "value": "={{ new Date().toISOString() }}"
+       },
+       {
+        "name": "singleEvents",
+        "value": "true"
+       },
+       {
+        "name": "orderBy",
+        "value": "startTime"
+       },
+       {
+        "name": "maxResults",
+        "value": "50"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "fa",
+    "name": "Find Events By Phone",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     3376,
+     2224
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "parameters": {
+     "jsCode": "const wb=$('Webhook').first().json.body;\nconst norm=$('Normalize Args').first().json;\nconst digits=String(norm.phone_clean||'').replace(/\\D/g,'');\nconst tail=digits.slice(-7);\nconst source=norm.phone_source;\nif(!tail||tail.length<7){\n  return [{json:{found:false,message:'No phone number available to search on.'}}];\n}\nconst items=($input.first().json.items||[]).filter(ev=>ev.id&&(ev.summary||'').includes('Appointment'));\nconst hits=[];\nfor(const ev of items){\n  const parts=(ev.description||'').split(' | ');\n  const pd=(parts[1]||'').replace(/\\D/g,'');\n  if(pd.length>=7&&pd.endsWith(tail)) hits.push({ev,parts});\n}\nif(!hits.length){\n  return [{json:{found:false,phone_source:source,message:'No upcoming appointment found under that phone number.'}}];\n}\nconst spoken=st=>st?new Date(st).toLocaleString('en-CA',{timeZone:'{{TIMEZONE}}',weekday:'long',month:'long',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}):'';\nconst shape=h=>{\n  const st=h.ev.start&&(h.ev.start.dateTime||h.ev.start.date);\n  return {event_id:h.ev.id,customer_name:h.parts[0]||'',vehicle:h.parts[2]||'',\n          service:h.parts[3]||'',spoken_datetime:spoken(st),event_start:st};\n};\nif(hits.length===1){\n  return [{json:{found:true,multiple:false,count:1,phone_source:source,...shape(hits[0])}}];\n}\n// More than one booking on this number — let the caller pick. Distinguish by time and\n// service only; never lead with the customer's name (weak-identifier disclosure rule).\nconst options=hits.map(shape);\nreturn [{json:{found:true,multiple:true,count:options.length,phone_source:source,\n  options:options.map(o=>({event_id:o.event_id,spoken_datetime:o.spoken_datetime,service:o.service})),\n  choices:options.map(o=>o.spoken_datetime+(o.service?(' for '+o.service):'')).join(', or ')}}];"
+    },
+    "id": "bfr",
+    "name": "Build Find Response",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3600,
+     2272
+    ]
+   },
+   {
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "=Callback: {{ $('Webhook').first().json.body.args.customer_name }} — {{SHOP_NAME}}",
+     "text": "=Callback: {{ $('Webhook').first().json.body.args.customer_name }}, {{ $('Normalize Args').first().json.phone_clean }}, {{ $('Webhook').first().json.body.args.vehicle || 'no vehicle given' }}, {{ $('Webhook').first().json.body.args.reason }}, prefers {{ $('Webhook').first().json.body.args.preferred_time || 'any time' }}",
+     "options": {}
+    },
+    "id": "cbe",
+    "name": "Email {{OWNER_NAME}} Callback",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     2928,
+     2464
+    ],
+    "webhookId": "bec72e87-5392-4d74-bb5f-e0b72a9771bc",
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "parameters": {
+     "url": "https://www.googleapis.com/drive/v3/files",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "name = '{{SHOP_NAME}} — Makati Log' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
+       },
+       {
+        "name": "pageSize",
+        "value": "1"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "cbl",
+    "name": "Find Sheet",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     3152,
+     2464
+    ],
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "parameters": {
+     "method": "POST",
+     "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.files[0].id }}/values/Callback Queue!A2:append",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "valueInputOption",
+        "value": "USER_ENTERED"
+       }
+      ]
+     },
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={{ JSON.stringify({values: [[ $('Webhook').first().json.body.args.customer_name || '', $('Normalize Args').first().json.phone_clean, $('Webhook').first().json.body.args.vehicle || '', $('Webhook').first().json.body.args.reason || '', new Date().toLocaleDateString('en-CA',{timeZone:'{{TIMEZONE}}'}), $('Webhook').first().json.body.args.preferred_time || '', 'FALSE' ]]}) }}",
+     "options": {}
+    },
+    "id": "cba",
+    "name": "Append Callback Row",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     3376,
+     2464
+    ],
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "parameters": {
+     "jsCode": "const wb=$('Webhook').first().json.body;\nreturn [{json:{success:true,action:'callback_logged',call_id:wb.call?wb.call.call_id:null}}];"
+    },
+    "id": "cbr",
+    "name": "Build Callback Response",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3600,
+     2464
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const wb=$('Webhook').first().json.body;\nconst fn=wb.name;\nconst args=wb.args||{};\nconst inp=$input.item.json;\nlet event_id, action;\nif(fn==='log_appointment'){\n  if(inp.action==='duplicate_skipped'){event_id=inp.event_id;action='duplicate_skipped';}\n  else {event_id=inp.id;action='created';}\n  return [{json:{success:!!event_id,event_id,action,call_id:wb.call.call_id}}];\n} else if(fn==='update_appointment'){\n  event_id=inp.id;\n  const success=!!event_id;\n  action=success?'updated':'update_failed';\n  return [{json:{success,event_id:event_id||args.event_id,action,call_id:wb.call.call_id}}];\n} else if(fn==='cancel_appointment'){\n  const success=inp.success===true;\n  event_id=args.event_id;\n  action=success?'cancelled':'cancel_failed';\n  return [{json:{success,event_id,action,call_id:wb.call.call_id}}];\n} else {\n  return [{json:{success:false,event_id:null,action:'unknown',call_id:wb.call.call_id}}];\n}"
+    },
+    "id": "br",
+    "name": "Build Response",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3600,
+     112
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const log={\n  data_category:'appointment_booking',\n  timestamp:new Date().toISOString(),\n  call_id:$input.item.json.call_id||null,\n  action:$input.item.json.action,\n  purpose:'auto_shop_booking'\n};\nconsole.log('[MAKATI AUDIT]', JSON.stringify(log));\nreturn [{json:log}];"
+    },
+    "id": "al",
+    "name": "Audit Log",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3824,
+     64
+    ]
+   },
+   {
+    "parameters": {
+     "options": {
+      "responseCode": 200
+     }
+    },
+    "id": "r200",
+    "name": "Respond 200",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": [
+     3824,
+     960
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const wb=$('Webhook').first().json.body;\nconst fn=wb.name;\nconst map={log_appointment:'book_failed',update_appointment:'update_failed',\n           cancel_appointment:'cancel_failed',find_appointment:'find_failed'};\n// find_appointment is judged on `found`, every other branch on `success` — answer both so\n// the flow's edges can always resolve. Never return an empty body.\nreturn [{json:{success:false,found:false,error:'calendar_unavailable',action:map[fn]||'failed',\n               event_id:(wb.args||{}).event_id||null,call_id:(wb.call||{}).call_id||null,\n               message:'The calendar system did not respond. Do not tell the caller this is in progress.'}}];"
+    },
+    "id": "berr",
+    "name": "Build Error Response",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3600,
+     352
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const wb=$('Webhook').first().json.body;\nreturn [{json:{success:false,needs_lookup:true,action:'needs_lookup',\n               event_id:null,call_id:(wb.call||{}).call_id||null,\n               message:'No valid event_id was supplied. Call find_appointment first.'}}];"
+    },
+    "id": "bnlk",
+    "name": "Build Needs Lookup Response",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     3376,
+     1552
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "loose",
+       "version": 2
+      },
+      "conditions": [
+       {
+        "id": "biduc",
+        "leftValue": "={{ (() => { const v = String((($json.body||{}).args||{}).event_id || '').trim(); if (!v) return true; if (/\\s/.test(v)) return true; if (v.length < 20 || v.length > 40) return true; if ((v.match(/\\d/g) || []).length < 2) return true; if (new Set(v).size < 5) return true; return false; })() }}",
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        },
+        "rightValue": ""
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "bidu",
+    "name": "Bad Event ID (Update)?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     2032,
+     1072
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "loose",
+       "version": 2
+      },
+      "conditions": [
+       {
+        "id": "bidcc",
+        "leftValue": "={{ (() => { const v = String((($json.body||{}).args||{}).event_id || '').trim(); if (!v) return true; if (/\\s/.test(v)) return true; if (v.length < 20 || v.length > 40) return true; if ((v.match(/\\d/g) || []).length < 2) return true; if (new Set(v).size < 5) return true; return false; })() }}",
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        },
+        "rightValue": ""
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "bidc",
+    "name": "Bad Event ID (Cancel)?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     3152,
+     1728
+    ]
+   },
+   {
+    "parameters": {
+     "jsCode": "const item=$input.first().json;\nconst b=item.body||{}, a=b.args||{};\n// The model cannot see caller ID, so when a caller says \"this number\" it sends an empty\n// string — or, worse, a plausible-looking placeholder. Neither is a phone number.\nconst JUNK=/^(caller|caller id|callerid|this number|this one|the same|same|my number|above|active|latest|current|unknown|null|none|n\\/a)$/i;\nconst stated=String(a.phone==null?'':a.phone).trim();\nconst ok=!!stated && !JUNK.test(stated) && stated.replace(/\\D/g,'').length>=7;\nconst phone=ok?stated:String((b.call||{}).from_number||'');\nreturn [{json:{...item, phone_clean:phone, phone_source:ok?'stated':'caller_id'}}];"
+    },
+    "id": "norm",
+    "name": "Normalize Args",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1136,
+     2080
+    ]
+   },
+   {
+    "id": "w1cbsms",
+    "name": "Text {{OWNER_NAME}} Callback",
+    "type": "n8n-nodes-base.twilio",
+    "typeVersion": 1,
+    "position": [
+     2928,
+     2624
+    ],
+    "onError": "continueErrorOutput",
+    "credentials": {
+     "twilioApi": {
+      "id": "iPlcmTnYSg91HdzQ",
+      "name": "Twilio account (connect me)"
+     }
+    },
+    "parameters": {
+     "resource": "sms",
+     "operation": "send",
+     "from": "{{SMS_FROM}}",
+     "to": "{{OWNER_CELL}}",
+     "message": "=Callback: {{ $('Webhook').first().json.body.args.customer_name || '(no name)' }}\n{{ (() => { const raw = String($('Normalize Args').first().json.phone_clean || '').trim(); const d = raw.replace(/\\D/g,'').slice(-10); return d.length === 10 ? d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6) : (raw || '(no number on file)'); })() }}\n{{ $('Webhook').first().json.body.args.reason || 'no reason given' }}{{ $('Webhook').first().json.body.args.preferred_time ? '\\nprefers ' + $('Webhook').first().json.body.args.preferred_time : '' }}",
+     "options": {}
+    }
+   },
+   {
+    "id": "alrtbuild",
+    "name": "Build Alert",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     4044,
+     520
+    ],
+    "parameters": {
+     "jsCode": "// Build one sanitised alert line. No customer PII - workflow, channel and reason only,\n// matching W2's Sanitize - No PII discipline.\nconst j=$json||{};\nconst err=j.error||{};\nconst why=String(err.message||err.description||j.alert_reason||'unknown').slice(0,300);\nconst what=j.alert_what||('W1 Appointment Logger notification');\nconst when=new Date().toLocaleString('en-CA',{timeZone:'{{TIMEZONE}}'});\nreturn [{json:{alert_what:what,alert_why:why,alert_when:when,\n  alert_text:`MAKATI ALERT - ${what} failed at ${when}. Reason: ${why}`}}];"
+    }
+   },
+   {
+    "id": "alrtmail",
+    "name": "Alert Owner (email)",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     4244,
+     440
+    ],
+    "onError": "continueRegularOutput",
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "=MAKATI ALERT - {{ $json.alert_what }} failed",
+     "emailFormat": "text",
+     "text": "={{ $json.alert_text }}\n\nWorkflow: W1 Appointment Logger\nNo customer details are included in this alert by design.",
+     "options": {}
+    },
+    "webhookId": "5802721d-2aaa-4a63-b280-1e7b8c96ffb5"
+   },
+   {
+    "id": "alrtsms",
+    "name": "Alert Owner (text)",
+    "type": "n8n-nodes-base.twilio",
+    "typeVersion": 1,
+    "position": [
+     4244,
+     600
+    ],
+    "onError": "continueRegularOutput",
+    "credentials": {
+     "twilioApi": {
+      "id": "iPlcmTnYSg91HdzQ",
+      "name": "Twilio account (connect me)"
+     }
+    },
+    "parameters": {
+     "resource": "sms",
+     "operation": "send",
+     "from": "{{SMS_FROM}}",
+     "to": "{{OWNER_CELL}}",
+     "message": "={{ $json.alert_text }}",
+     "options": {}
+    }
+   },
+   {
+    "id": "nfyfail",
+    "name": "Notify Failed?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     1400,
+     640
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "loose",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "nf1",
+        "leftValue": "={{ $json.error !== undefined }}",
+        "rightValue": true,
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   }
+  ],
+  "connections": {
+   "Webhook": {
+    "main": [
+     [
+      {
+       "node": "Get Webhook Secret",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Get Webhook Secret": {
+    "main": [
+     [
+      {
+       "node": "HMAC Signature Verify",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "HMAC Signature Verify": {
+    "main": [
+     [
+      {
+       "node": "HMAC Valid?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "HMAC Valid?": {
+    "main": [
+     [
+      {
+       "node": "Normalize Args",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Respond 401 Unauthorized",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Validate": {
+    "main": [
+     [
+      {
+       "node": "Route",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Respond 400 Invalid",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Route": {
+    "main": [
+     [
+      {
+       "node": "Idempotency Check",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Bad Event ID (Update)?",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Bad Event ID (Cancel)?",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Get Current Datetime",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Find Events By Phone",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Email {{OWNER_NAME}} Callback",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Text {{OWNER_NAME}} Callback",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Respond 400 Unknown",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Idempotency Check": {
+    "main": [
+     [
+      {
+       "node": "Event Found?",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Error Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Event Found?": {
+    "main": [
+     [
+      {
+       "node": "Return Existing Event",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Parse Datetime",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Return Existing Event": {
+    "main": [
+     [
+      {
+       "node": "Build Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Parse Datetime": {
+    "main": [
+     [
+      {
+       "node": "IF Outside Hours Booking",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "IF Outside Hours Booking": {
+    "main": [
+     [
+      {
+       "node": "Build Outside Hours Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Query Day Events",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Outside Hours Response": {
+    "main": [
+     [
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Query Day Events": {
+    "main": [
+     [
+      {
+       "node": "Check Availability",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Error Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Check Availability": {
+    "main": [
+     [
+      {
+       "node": "IF Available?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "IF Available?": {
+    "main": [
+     [
+      {
+       "node": "Create Event",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Conflict Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Create Event": {
+    "main": [
+     [
+      {
+       "node": "Build Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Error Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Conflict Response": {
+    "main": [
+     [
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Parse New Datetime": {
+    "main": [
+     [
+      {
+       "node": "IF Outside Hours Reschedule",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "IF Outside Hours Reschedule": {
+    "main": [
+     [
+      {
+       "node": "Build Outside Hours Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Query Day Events Reschedule",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Query Day Events Reschedule": {
+    "main": [
+     [
+      {
+       "node": "Check Availability Reschedule",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Error Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Check Availability Reschedule": {
+    "main": [
+     [
+      {
+       "node": "IF Available Reschedule?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "IF Available Reschedule?": {
+    "main": [
+     [
+      {
+       "node": "Update Event",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Conflict Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Update Event": {
+    "main": [
+     [
+      {
+       "node": "Build Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Error Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Delete Event": {
+    "main": [
+     [
+      {
+       "node": "Build Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Error Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Get Current Datetime": {
+    "main": [
+     [
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Find Events By Phone": {
+    "main": [
+     [
+      {
+       "node": "Build Find Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Build Error Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Find Response": {
+    "main": [
+     [
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Email {{OWNER_NAME}} Callback": {
+    "main": [
+     [
+      {
+       "node": "Find Sheet",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Notify Failed?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Find Sheet": {
+    "main": [
+     [
+      {
+       "node": "Append Callback Row",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Append Callback Row": {
+    "main": [
+     [
+      {
+       "node": "Build Callback Response",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Callback Response": {
+    "main": [
+     [
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Response": {
+    "main": [
+     [
+      {
+       "node": "Audit Log",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Bad Event ID (Update)?": {
+    "main": [
+     [
+      {
+       "node": "Build Needs Lookup Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Parse New Datetime",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Bad Event ID (Cancel)?": {
+    "main": [
+     [
+      {
+       "node": "Build Needs Lookup Response",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Delete Event",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Needs Lookup Response": {
+    "main": [
+     [
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Error Response": {
+    "main": [
+     [
+      {
+       "node": "Respond 200",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Normalize Args": {
+    "main": [
+     [
+      {
+       "node": "Validate",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Alert": {
+    "main": [
+     [
+      {
+       "node": "Alert Owner (email)",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Alert Owner (text)",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Text {{OWNER_NAME}} Callback": {
+    "main": [
+     [],
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Notify Failed?": {
+    "main": [
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     []
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "timezone": "{{TIMEZONE}}",
+   "errorWorkflow": "Gw85fnYshqGy4UUE",
+   "binaryMode": "separate"
+  }
+ },
+ "W2 Error Handler": {
+  "name": "{{SHOP_NAME}} — Error Handler",
+  "nodes": [
+   {
+    "id": "et",
+    "name": "Error Trigger",
+    "type": "n8n-nodes-base.errorTrigger",
+    "typeVersion": 1,
+    "position": [
+     240,
+     300
+    ],
+    "parameters": {}
+   },
+   {
+    "id": "san",
+    "name": "Sanitize — No PII",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     460,
+     300
+    ],
+    "parameters": {
+     "assignments": {
+      "assignments": [
+       {
+        "id": "ts",
+        "name": "timestamp",
+        "value": "={{ $now.toISO() }}",
+        "type": "string"
+       },
+       {
+        "id": "wf",
+        "name": "workflow_id",
+        "value": "={{ $json.workflow.id }}",
+        "type": "string"
+       },
+       {
+        "id": "ex",
+        "name": "execution_id",
+        "value": "={{ $json.execution.id }}",
+        "type": "string"
+       },
+       {
+        "id": "em",
+        "name": "error_message",
+        "value": "={{ $json.execution.error.message }}",
+        "type": "string"
+       },
+       {
+        "id": "ln",
+        "name": "last_node",
+        "value": "={{ $json.execution.lastNodeExecuted }}",
+        "type": "string"
+       }
+      ]
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "dl",
+    "name": "Dead-letter Log",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     690,
+     190
+    ],
+    "parameters": {
+     "jsCode": "const e={timestamp:$input.item.json.timestamp,workflow_id:$input.item.json.workflow_id,execution_id:$input.item.json.execution_id,error_message:$input.item.json.error_message,last_node:$input.item.json.last_node,alert:'Makati failure — action needed'};\nconsole.log('[MAKATI DEAD-LETTER]', JSON.stringify(e));\nreturn [{json:e}];"
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "no",
+    "name": "Notify Owner",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     690,
+     430
+    ],
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "Makati failure — action needed",
+     "options": {}
+    },
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "onError": "continueRegularOutput",
+    "webhookId": "49857908-4ef2-40e1-9c6a-f69ad18b87e1"
+   }
+  ],
+  "connections": {
+   "Error Trigger": {
+    "main": [
+     [
+      {
+       "node": "Sanitize — No PII",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Sanitize — No PII": {
+    "main": [
+     [
+      {
+       "node": "Dead-letter Log",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Notify Owner",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "timezone": "{{TIMEZONE}}"
+  }
+ },
+ "W3 Call Log & Notify": {
+  "name": "{{SHOP_NAME}} — Call Log & Notify",
+  "nodes": [
+   {
+    "id": "wh",
+    "name": "Webhook",
+    "type": "n8n-nodes-base.webhook",
+    "typeVersion": 2,
+    "position": [
+     240,
+     300
+    ],
+    "parameters": {
+     "httpMethod": "POST",
+     "path": "{{SLUG}}-call-log",
+     "options": {}
+    },
+    "webhookId": "7be99977-fe44-414c-bc73-75a7a3a8e569"
+   },
+   {
+    "id": "gs",
+    "name": "Get Webhook Secret",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     460,
+     300
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "https://automa1ons.app.n8n.cloud/webhook/retell-secret-bridge-4f9d",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "httpHeaderAuth",
+     "options": {}
+    },
+    "credentials": {
+     "httpHeaderAuth": {
+      "id": "5GNmnYcLETYaLBrB",
+      "name": "Retell API Key"
+     }
+    }
+   },
+   {
+    "id": "hv",
+    "name": "HMAC Signature Verify",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     690,
+     300
+    ],
+    "parameters": {
+     "jsCode": "const crypto = require('crypto');\nconst webhookData = $('Webhook').first().json;\nconst sigHeader = webhookData.headers['x-retell-signature'];\nif (!sigHeader) { return [{ json: { valid: false, reason: 'missing_signature_header' } }]; }\nconst match = sigHeader.match(/^v=(\\d+),d=([0-9a-f]+)$/i);\nif (!match) { return [{ json: { valid: false, reason: 'malformed_signature_header' } }]; }\nconst timestamp = match[1];\nconst receivedDigest = match[2];\nconst ageMs = Date.now() - parseInt(timestamp, 10);\nif (ageMs > 5 * 60 * 1000 || ageMs < -30000) { return [{ json: { valid: false, reason: 'timestamp_outside_window' } }]; }\nconst bridgeRaw = $('Get Webhook Secret').first().json;\nconst apiKey = (Array.isArray(bridgeRaw) ? bridgeRaw[0] : bridgeRaw)?.secret || '';\nif (!apiKey) { return [{ json: { valid: false, reason: 'api_key_unavailable' } }]; }\nconst rawBody = JSON.stringify(webhookData.body);\nconst message = rawBody + timestamp;\nconst computedBuf = crypto.createHmac('sha256', apiKey).update(message, 'utf8').digest();\nconst receivedBuf = Buffer.from(receivedDigest, 'hex');\nif (computedBuf.length !== receivedBuf.length) { return [{ json: { valid: false, reason: 'signature_invalid' } }]; }\nif (!crypto.timingSafeEqual(computedBuf, receivedBuf)) { return [{ json: { valid: false, reason: 'signature_mismatch' } }]; }\nreturn $('Webhook').all().map(item => ({ json: { valid: true, ...item.json } }));"
+    }
+   },
+   {
+    "id": "hq",
+    "name": "HMAC Valid?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     910,
+     300
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "hqc",
+        "leftValue": "={{ $json.valid }}",
+        "rightValue": true,
+        "operator": {
+         "type": "boolean",
+         "operation": "equals"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "ia",
+    "name": "Is Call Analyzed?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     1130,
+     260
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "e1",
+        "leftValue": "={{ $json.body.event }}",
+        "rightValue": "call_analyzed",
+        "operator": {
+         "type": "string",
+         "operation": "equals"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "ex",
+    "name": "Extract Call Data",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1360,
+     220
+    ],
+    "parameters": {
+     "jsCode": "const b=$('Webhook').first().json.body||{};\nconst call=b.call||{};\nconst an=call.call_analysis||{};\nconst c=an.custom_analysis_data||{};\nconst map={book:'Booked',reschedule:'Rescheduled',cancel:'Cancelled',callback_request:'Callback'};\n// W1 already emails {{OWNER_NAME}} the moment log_callback runs, with the reason and preferred time.\n// A second copy 30 seconds later carrying only a summary is noise.\nconst SILENT={callback_request:true};\nconst t=c.call_type||'other';\nconst urgent=c.urgent_safety_issue===true;\nconst done=c.task_completed===true;\nconst name=c.customer_name||'', phone=c.phone||call.from_number||'', veh=c.vehicle||'',\n      svc=c.service||'', appt=c.appointment_datetime||'';\n\n// --- what the calendar actually holds when the call ends -------------------------------\n// call_type is the analyst's read of what the caller ASKED for, not what the system DID. On\n// 08-04 a cancel the caller took back and Makati re-booked came back call_type:'cancel', and\n// {{OWNER_NAME}} was texted \"Cancelled\" for an appointment sitting on his calendar. W1 stamps every reply\n// with success + action and Retell ships them all back here, so the LAST successful\n// appointment action is not a guess. The analyst still supplies the details, not the verb.\nconst ACTS={created:'Booked',duplicate_skipped:'Booked',updated:'Rescheduled',cancelled:'Cancelled'};\nconst TYPES={created:'book',duplicate_skipped:'book',updated:'reschedule',cancelled:'cancel'};\n// The three tools that change a calendar. Everything else here is lookup or callback.\nconst APPT={log_appointment:1,update_appointment:1,cancel_appointment:1};\nconst seq=[]; const sent={};\nlet step=0, okAt=-1, fail=null;\nfor(const u of (call.transcript_with_tool_calls||[])){\n  if(!u) continue;\n  if(u.role==='tool_call_invocation'&&APPT[u.name]){\n    let a=null; try{a=JSON.parse(u.arguments||'{}');}catch(e){}\n    sent[u.tool_call_id]={fn:u.name,a:a||{}};\n    continue;\n  }\n  if(u.role!=='tool_call_result') continue;\n  step++;\n  let r=null; try{r=JSON.parse(u.content);}catch(e){}\n  if(r&&r.success===true&&ACTS[r.action]){seq.push(r.action); okAt=step; continue;}\n  const inv=sent[u.tool_call_id];\n  if(!inv) continue;\n  // A conflict, an outside-hours time or a needs_lookup bounce is negotiation, not failure -\n  // the caller gets alternatives or a lookup. A 404 page, calendar_unavailable or an\n  // unparseable body is a booking nobody has.\n  const soft=r&&(r.conflict===true||r.outside_clinic_hours===true||r.needs_lookup===true);\n  if(!soft) fail={fn:inv.fn,a:inv.a,at:step,\n    why:String((r&&(r.message||r.error))||u.content||'unknown').slice(0,200)};\n}\n// A cancellation taken back and re-booked inside one call reads as 'Booked', like any other\n// booking - owner's call. What {{OWNER_NAME}} needs from a one-liner is the state of his calendar, and\n// the how is in the call summary underneath it.\nconst last=seq.length?seq[seq.length-1]:'';\nconst verb=ACTS[last]||'';\nconst sheetType=TYPES[last]||t;\n// Only a failure nothing recovered from. Try, fail, try again, succeed = a booking.\nconst failed=!!fail&&fail.at>okAt;\n\n// {{OWNER_NAME}} hears about a call only if something actually changed, or someone may be unsafe.\n// An abandoned booking is not news; a brake failure that hung up mid-call is. A tool that\n// really ran outranks task_completed: if it is on the calendar, he is told.\n// urgent used to short-circuit SILENT, so a callback about brakes was texted by W1 and\n// again by W3 - 08-04 §7.5. The silence rule now wraps the urgency check.\nconst notify = verb ? true : (!SILENT[t] && (urgent || (done && !!map[t])));\n// One phone format everywhere {{OWNER_NAME}} reads: the analysis echoes caller-stated digits or\n// E.164 depending on the call, and only the dashed form is reliably tap-to-dial.\nconst fmtPhone=p=>{const d=String(p||'').replace(/\\D/g,'').slice(-10);\n  return d.length===10?d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6):String(p||'');};\nconst details=[name,fmtPhone(phone),veh,svc,appt].filter(x=>x).join(', ');\n// What she actually sent to the calendar, not what the analyst made of the call afterwards.\n// On 08-04 the analyst's version was the only record and it reached nobody.\nconst FA=(fail&&fail.a)||{};\nconst fail_who=[FA.customer_name||name||'(no name given)',fmtPhone(FA.phone||phone)]\n  .filter(x=>x).join(', ');\nconst fail_when=[FA.preferred_date||'',FA.preferred_time||''].filter(x=>x).join(' ')\n  ||appt||'(no time captured)';\nconst fail_what=[FA.vehicle||veh,FA.service||svc].filter(x=>x).join(', ')||'(not captured)';\nconst FNAME={log_appointment:'booking',update_appointment:'reschedule',\n             cancel_appointment:'cancellation'};\nconst fail_kind=(FNAME[fail&&fail.fn]||'booking').toUpperCase();\nconst fail_subject=fail_kind+' FAILED - '+fail_who;\nconst fail_body=[fail_kind+' FAILED - nothing was written to the calendar.','',\n  'Customer: '+fail_who,\n  'Requested: '+fail_when,\n  'Vehicle/service: '+fail_what,\n  'Why: '+((fail&&fail.why)||''),\n  'Function: '+((fail&&fail.fn)||''),\n  'Call ID: '+(call.call_id||''),'',\n  'The caller was told it did not go through. Call them back.'].join('\\n');\nlet msg;\nif(verb){\n  msg=verb+': '+details;\n  if(urgent) msg+=' - URGENT: possible safety issue';\n} else if(done && map[t]){\n  msg=map[t]+': '+details;\n  if(urgent) msg+=' - URGENT: possible safety issue';\n} else if(urgent){\n  // Never claim a booking that never happened.\n  msg='URGENT - '+(svc||'possible safety issue')+', call did not complete: '+(details||'no details captured');\n} else {\n  msg='(not notified) '+t+': '+details;\n}\n// A call that ends for one of these reasons went wrong. The 08-01 freeze died of\n// 'inactivity' and alerted nobody, because this field was never read.\nconst BAD=[\"inactivity\", \"error\", \"dial_failed\", \"dial_busy\", \"dial_no_answer\", \"concurrency_limit_reached\", \"no_valid_payment\", \"scam_detected\"];\nconst dr=String(b.call&&b.call.disconnection_reason||call.disconnection_reason||'');\nconst call_failed=BAD.indexOf(dr)>=0;\nconst ts=new Date(call.start_timestamp||Date.now()).toLocaleString('en-CA',{timeZone:'{{TIMEZONE}}'});\nreturn [{json:{ts,call_id:call.call_id||'',type:sheetType,name,phone,vehicle:veh,service:svc,\n  summary:an.call_summary||'',urgent:urgent?'TRUE':'FALSE',\n  completed:done?'TRUE':'FALSE',notify,msg,call_failed,\n  alert_what:'call ended badly ('+dr+')',alert_reason:dr,\n  failed,fail_subject,fail_body}}];"
+    }
+   },
+   {
+    "id": "fs",
+    "name": "Find Sheet",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1590,
+     220
+    ],
+    "parameters": {
+     "url": "https://www.googleapis.com/drive/v3/files",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "name = '{{SHOP_NAME}} — Makati Log' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
+       },
+       {
+        "name": "pageSize",
+        "value": "1"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "ap",
+    "name": "Append Call Log Row",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1810,
+     220
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.files[0].id }}/values/Call Log!A2:append",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "valueInputOption",
+        "value": "USER_ENTERED"
+       }
+      ]
+     },
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={{ JSON.stringify({values: [[ $('Extract Call Data').first().json.ts, $('Extract Call Data').first().json.call_id, $('Extract Call Data').first().json.type, $('Extract Call Data').first().json.name, $('Extract Call Data').first().json.phone, $('Extract Call Data').first().json.vehicle, $('Extract Call Data').first().json.service, $('Extract Call Data').first().json.summary, $('Extract Call Data').first().json.urgent, $('Extract Call Data').first().json.completed ]]}) }}",
+     "options": {}
+    },
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "sn",
+    "name": "Should Notify {{OWNER_NAME}}?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     2030,
+     220
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "n1",
+        "leftValue": "={{ $('Extract Call Data').first().json.notify }}",
+        "rightValue": true,
+        "operator": {
+         "type": "boolean",
+         "operation": "equals"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "em",
+    "name": "Email {{OWNER_NAME}} Summary",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     2260,
+     180
+    ],
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "={{ $('Extract Call Data').first().json.msg }}",
+     "emailFormat": "text",
+     "text": "={{ $('Extract Call Data').first().json.msg }}\n\nSummary: {{ $('Extract Call Data').first().json.summary }}\nCall ID: {{ $('Extract Call Data').first().json.call_id }}",
+     "options": {}
+    },
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "onError": "continueErrorOutput",
+    "webhookId": "ed9c4799-73a6-4417-a4fd-2ed6090a39f9"
+   },
+   {
+    "id": "tw",
+    "name": "Twilio SMS {{OWNER_NAME}} (enable when Twilio connected)",
+    "type": "n8n-nodes-base.twilio",
+    "typeVersion": 1,
+    "position": [
+     2260,
+     380
+    ],
+    "parameters": {
+     "resource": "sms",
+     "operation": "send",
+     "from": "{{SMS_FROM}}",
+     "to": "{{OWNER_CELL}}",
+     "message": "={{ $('Extract Call Data').first().json.msg }}",
+     "options": {}
+    },
+    "credentials": {
+     "twilioApi": {
+      "id": "iPlcmTnYSg91HdzQ",
+      "name": "Twilio account (connect me)"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "id": "alrtbuild",
+    "name": "Build Alert",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     2480,
+     520
+    ],
+    "parameters": {
+     "jsCode": "// Build one sanitised alert line. No customer PII - workflow, channel and reason only,\n// matching W2's Sanitize - No PII discipline.\nconst j=$json||{};\nconst err=j.error||{};\nconst why=String(err.message||err.description||j.alert_reason||'unknown').slice(0,300);\nconst what=j.alert_what||('W3 Call Log & Notify notification');\nconst when=new Date().toLocaleString('en-CA',{timeZone:'{{TIMEZONE}}'});\nreturn [{json:{alert_what:what,alert_why:why,alert_when:when,\n  alert_text:`MAKATI ALERT - ${what} failed at ${when}. Reason: ${why}`}}];"
+    }
+   },
+   {
+    "id": "alrtmail",
+    "name": "Alert Owner (email)",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     2680,
+     440
+    ],
+    "onError": "continueRegularOutput",
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "=MAKATI ALERT - {{ $json.alert_what }} failed",
+     "emailFormat": "text",
+     "text": "={{ $json.alert_text }}\n\nWorkflow: W3 Call Log & Notify\nNo customer details are included in this alert by design.",
+     "options": {}
+    },
+    "webhookId": "5451a095-9e91-481b-803d-98a9001ecd22"
+   },
+   {
+    "id": "alrtsms",
+    "name": "Alert Owner (text)",
+    "type": "n8n-nodes-base.twilio",
+    "typeVersion": 1,
+    "position": [
+     2680,
+     600
+    ],
+    "onError": "continueRegularOutput",
+    "credentials": {
+     "twilioApi": {
+      "id": "iPlcmTnYSg91HdzQ",
+      "name": "Twilio account (connect me)"
+     }
+    },
+    "parameters": {
+     "resource": "sms",
+     "operation": "send",
+     "from": "{{SMS_FROM}}",
+     "to": "{{OWNER_CELL}}",
+     "message": "={{ $json.alert_text }}",
+     "options": {}
+    }
+   },
+   {
+    "id": "callfail",
+    "name": "Call Failed?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     900,
+     700
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "cf1",
+        "leftValue": "={{ $json.call_failed }}",
+        "rightValue": true,
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "bookfail",
+    "name": "Booking Failed?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     900,
+     900
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "bf1",
+        "leftValue": "={{ $json.failed }}",
+        "rightValue": true,
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "bookfailmail",
+    "name": "Email Owner — Booking Failed",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     1180,
+     900
+    ],
+    "onError": "continueErrorOutput",
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "={{ $('Extract Call Data').first().json.fail_subject }}",
+     "emailFormat": "text",
+     "text": "={{ $('Extract Call Data').first().json.fail_body }}",
+     "options": {}
+    },
+    "webhookId": "a914a758-48ac-4d0c-86e6-116615f03a94"
+   }
+  ],
+  "connections": {
+   "Webhook": {
+    "main": [
+     [
+      {
+       "node": "Get Webhook Secret",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Get Webhook Secret": {
+    "main": [
+     [
+      {
+       "node": "HMAC Signature Verify",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "HMAC Signature Verify": {
+    "main": [
+     [
+      {
+       "node": "HMAC Valid?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "HMAC Valid?": {
+    "main": [
+     [
+      {
+       "node": "Is Call Analyzed?",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     []
+    ]
+   },
+   "Is Call Analyzed?": {
+    "main": [
+     [
+      {
+       "node": "Extract Call Data",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     []
+    ]
+   },
+   "Extract Call Data": {
+    "main": [
+     [
+      {
+       "node": "Find Sheet",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Call Failed?",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Booking Failed?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Find Sheet": {
+    "main": [
+     [
+      {
+       "node": "Append Call Log Row",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Append Call Log Row": {
+    "main": [
+     [
+      {
+       "node": "Should Notify {{OWNER_NAME}}?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Should Notify {{OWNER_NAME}}?": {
+    "main": [
+     [
+      {
+       "node": "Email {{OWNER_NAME}} Summary",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Twilio SMS {{OWNER_NAME}} (enable when Twilio connected)",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     []
+    ]
+   },
+   "Build Alert": {
+    "main": [
+     [
+      {
+       "node": "Alert Owner (email)",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Alert Owner (text)",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Email {{OWNER_NAME}} Summary": {
+    "main": [
+     [],
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Twilio SMS {{OWNER_NAME}} (enable when Twilio connected)": {
+    "main": [
+     [],
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Call Failed?": {
+    "main": [
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     []
+    ]
+   },
+   "Booking Failed?": {
+    "main": [
+     [
+      {
+       "node": "Email Owner — Booking Failed",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     []
+    ]
+   },
+   "Email Owner — Booking Failed": {
+    "main": [
+     [],
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "timezone": "{{TIMEZONE}}",
+   "errorWorkflow": "Gw85fnYshqGy4UUE"
+  }
+ },
+ "W4 Daily Callback Digest": {
+  "name": "{{SHOP_NAME}} — Daily Callback Digest",
+  "nodes": [
+   {
+    "id": "st",
+    "name": "Every Morning 9:00",
+    "type": "n8n-nodes-base.scheduleTrigger",
+    "typeVersion": 1.2,
+    "position": [
+     240,
+     300
+    ],
+    "parameters": {
+     "rule": {
+      "interval": [
+       {
+        "field": "cronExpression",
+        "expression": "0 9 * * *"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "fs",
+    "name": "Find Sheet",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     460,
+     300
+    ],
+    "parameters": {
+     "url": "https://www.googleapis.com/drive/v3/files",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "name = '{{SHOP_NAME}} — Makati Log' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
+       },
+       {
+        "name": "pageSize",
+        "value": "1"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "rd",
+    "name": "Read Callback Queue",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     690,
+     300
+    ],
+    "parameters": {
+     "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.files[0].id }}/values/Callback Queue!A2:G999",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "options": {}
+    },
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "dg",
+    "name": "Build Digest",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     910,
+     300
+    ],
+    "parameters": {
+     "jsCode": "const rows=($input.first().json.values)||[];\nconst open=rows.map((r,i)=>({r,row:i+2})).filter(x=>((x.r[6]||'').toString().toUpperCase()!=='TRUE')&&(x.r[0]||x.r[1]));\nif(!open.length) return [];\n// {{OWNER_NAME}} dials straight from this text, so the number has to be present and tappable. Rows arrive in\n// both 15550100001 and 204-555-0142 shapes; normalise to the dashed form phones linkify reliably.\nconst fmt=p=>{const d=String(p||'').replace(/\\D/g,'').slice(-10);\n  return d.length===10?`${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`:String(p||'').trim();};\n// Long concatenated SMS gets truncated by some carriers, so cap the list and point at the sheet.\n// Parse Reply reads the sheet itself, so a name past the cap still ticks off correctly.\nconst CAP=12;\n// A blank name is a data problem, not a customer called Unknown - say so, keep the number.\nconst entry=(x,i)=>{const ph=fmt(x.r[1]); const why=x.r[3]||x.r[2]||'callback';\n  return `${i+1}. ${x.r[0]||'(no name)'} ${ph||'(no number on file)'} - ${why}`;};\nconst shown=open.slice(0,CAP).map(entry).join('\\n');\nconst extra=open.length>CAP?`\\n+${open.length-CAP} more on the sheet`:'';\n// Plain hyphen, not an em dash: a single non-GSM-7 character flips the whole message to UCS-2,\n// which cuts a concatenated segment from 153 characters to 67 and doubles the send cost.\nconst msg=`Morning {{OWNER_NAME}} - ${open.length} open callback${open.length>1?'s':''}:\\n\\n${shown}${extra}\\n\\nWhich have you done? Reply with names or 'all'.`;\nreturn [{json:{count:open.length,msg}}];"
+    }
+   },
+   {
+    "id": "em",
+    "name": "Email {{OWNER_NAME}} Digest",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     1130,
+     260
+    ],
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "=Makati — {{ $json.count }} open callback(s)",
+     "emailFormat": "text",
+     "text": "={{ $json.msg }}",
+     "options": {}
+    },
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "onError": "continueErrorOutput",
+    "webhookId": "a67bb0e1-109f-4e95-8493-e2eb2172b3a1"
+   },
+   {
+    "id": "tw",
+    "name": "Twilio SMS {{OWNER_NAME}} (enable when Twilio connected)",
+    "type": "n8n-nodes-base.twilio",
+    "typeVersion": 1,
+    "position": [
+     1130,
+     460
+    ],
+    "parameters": {
+     "resource": "sms",
+     "operation": "send",
+     "from": "{{SMS_FROM}}",
+     "to": "{{OWNER_CELL}}",
+     "message": "={{ $json.msg }}",
+     "options": {}
+    },
+    "credentials": {
+     "twilioApi": {
+      "id": "iPlcmTnYSg91HdzQ",
+      "name": "Twilio account (connect me)"
+     }
+    },
+    "onError": "continueErrorOutput"
+   },
+   {
+    "id": "alrtbuild",
+    "name": "Build Alert",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     1350,
+     520
+    ],
+    "parameters": {
+     "jsCode": "// Build one sanitised alert line. No customer PII - workflow, channel and reason only,\n// matching W2's Sanitize - No PII discipline.\nconst j=$json||{};\nconst err=j.error||{};\nconst why=String(err.message||err.description||j.alert_reason||'unknown').slice(0,300);\nconst what=j.alert_what||('W4 Daily Digest notification');\nconst when=new Date().toLocaleString('en-CA',{timeZone:'{{TIMEZONE}}'});\nreturn [{json:{alert_what:what,alert_why:why,alert_when:when,\n  alert_text:`MAKATI ALERT - ${what} failed at ${when}. Reason: ${why}`}}];"
+    }
+   },
+   {
+    "id": "alrtmail",
+    "name": "Alert Owner (email)",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     1550,
+     440
+    ],
+    "onError": "continueRegularOutput",
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    },
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "=MAKATI ALERT - {{ $json.alert_what }} failed",
+     "emailFormat": "text",
+     "text": "={{ $json.alert_text }}\n\nWorkflow: W4 Daily Digest\nNo customer details are included in this alert by design.",
+     "options": {}
+    },
+    "webhookId": "919fc8f6-8d08-4f3f-81a1-5c392281314c"
+   },
+   {
+    "id": "alrtsms",
+    "name": "Alert Owner (text)",
+    "type": "n8n-nodes-base.twilio",
+    "typeVersion": 1,
+    "position": [
+     1550,
+     600
+    ],
+    "onError": "continueRegularOutput",
+    "credentials": {
+     "twilioApi": {
+      "id": "iPlcmTnYSg91HdzQ",
+      "name": "Twilio account (connect me)"
+     }
+    },
+    "parameters": {
+     "resource": "sms",
+     "operation": "send",
+     "from": "{{SMS_FROM}}",
+     "to": "{{OWNER_CELL}}",
+     "message": "={{ $json.alert_text }}",
+     "options": {}
+    }
+   }
+  ],
+  "connections": {
+   "Every Morning 9:00": {
+    "main": [
+     [
+      {
+       "node": "Find Sheet",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Find Sheet": {
+    "main": [
+     [
+      {
+       "node": "Read Callback Queue",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Read Callback Queue": {
+    "main": [
+     [
+      {
+       "node": "Build Digest",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Digest": {
+    "main": [
+     [
+      {
+       "node": "Email {{OWNER_NAME}} Digest",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Twilio SMS {{OWNER_NAME}} (enable when Twilio connected)",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Alert": {
+    "main": [
+     [
+      {
+       "node": "Alert Owner (email)",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Alert Owner (text)",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Email {{OWNER_NAME}} Digest": {
+    "main": [
+     [],
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Twilio SMS {{OWNER_NAME}} (enable when Twilio connected)": {
+    "main": [
+     [],
+     [
+      {
+       "node": "Build Alert",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "timezone": "{{TIMEZONE}}",
+   "errorWorkflow": "Gw85fnYshqGy4UUE"
+  }
+ },
+ "W5 Callback Reply Parser": {
+  "name": "{{SHOP_NAME}} — Callback Reply Parser",
+  "nodes": [
+   {
+    "id": "wh",
+    "name": "Webhook",
+    "type": "n8n-nodes-base.webhook",
+    "typeVersion": 2,
+    "position": [
+     240,
+     300
+    ],
+    "parameters": {
+     "httpMethod": "POST",
+     "path": "{{SLUG}}-callback-reply",
+     "responseMode": "responseNode",
+     "options": {}
+    },
+    "webhookId": "1a8cd7f1-e042-47c1-9a0f-99c18be226ab"
+   },
+   {
+    "id": "fs",
+    "name": "Find Sheet",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     460,
+     300
+    ],
+    "parameters": {
+     "url": "https://www.googleapis.com/drive/v3/files",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "name = '{{SHOP_NAME}} — Makati Log' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
+       },
+       {
+        "name": "pageSize",
+        "value": "1"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "rd",
+    "name": "Read Callback Queue",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     690,
+     300
+    ],
+    "parameters": {
+     "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.files[0].id }}/values/Callback Queue!A2:G999",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "options": {}
+    },
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "pr",
+    "name": "Parse Reply",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     910,
+     300
+    ],
+    "parameters": {
+     "jsCode": "const b=$('Webhook').first().json.body||{};\nconst reply=String(b.Body||b.body||b.text||b.message||'').toLowerCase().trim();\nconst rows=($input.first().json.values)||[];\nconst all=rows.map((r,i)=>({name:String(r[0]||''),phone:String(r[1]||''),vehicle:String(r[2]||''),reason:String(r[3]||''),logged:String(r[4]||''),pref:String(r[5]||''),row:i+2,done:((r[6]||'').toString().toUpperCase()==='TRUE')})).filter(x=>x.name);\nconst open=all.filter(x=>!x.done);\nconst doneRows=all.filter(x=>x.done);\nconst fn=x=>x.name.toLowerCase().split(/\\s+/)[0];\n// Edit distance <=1 on words of 4+ chars. Used for the vehicle and the reason ONLY - never for\n// a name, because a fuzzy name match would tick the wrong customer off.\n// Damerau-Levenshtein, i.e. edit distance that also counts a swap of two adjacent letters as one\n// edit. That matters: both real typos from 08-01 were swaps - \"Breaks\" for \"brakes\" and \"chnage\"\n// for \"change\" - which plain edit distance scores as 2 and would miss.\nconst near=(a,b)=>{\n  if(a===b) return true;\n  if(a.length<4||b.length<4||Math.abs(a.length-b.length)>1) return false;\n  const m=a.length,n=b.length,d=[];\n  for(let i=0;i<=m;i++){ d[i]=[i]; }\n  for(let j=0;j<=n;j++){ d[0][j]=j; }\n  for(let i=1;i<=m;i++){\n    for(let j=1;j<=n;j++){\n      const c=a[i-1]===b[j-1]?0:1;\n      d[i][j]=Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+c);\n      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1]) d[i][j]=Math.min(d[i][j], d[i-2][j-2]+1);\n    }\n  }\n  return d[m][n]<=1;\n};\n// \"Breaks\" for \"brakes\" is a homophone, not a typo - genuinely 2 edits apart, so no distance\n// threshold catches it without also matching unrelated words. In an auto shop it is THE\n// misspelling, so it gets a named alias instead of a looser matcher.\nconst ALIAS={breaks:'brakes',break:'brakes',brake:'brakes',braks:'brakes',\n             tyre:'tire',tyres:'tires',rotor:'rotors',\n             oilchange:'oil change',allignment:'alignment',alignement:'alignment'};\nconst replyWords=reply.split(/[^a-z0-9]+/).filter(w=>w.length>=4).map(w=>ALIAS[w]||w);\nconst fieldHit=f=>!!f&&f.toLowerCase().split(/\\s+/).some(w=>w.length>=4&&(reply.includes(w)||replyWords.some(r=>r===w||near(r,w))));\nconst hit=x=>{\n  const f=fn(x);\n  return (f&&reply.includes(f))||fieldHit(x.vehicle)||fieldHit(x.reason);\n};\nconst NEG=/\\b(did\\s?n'?t|did not|have\\s?n'?t|have not|had\\s?n'?t|could\\s?n'?t|could not|ca\\s?n'?t|cannot|was\\s?n'?t|were\\s?n'?t|never|nothing|nobody|no one|no luck)\\b|\\bnot\\b/;\nconst negated=NEG.test(reply);\n// UNDO is checked first and searches the DONE rows - it has to work when nothing is open,\n// which is exactly the state {{OWNER_NAME}} got stuck in on 07-27.\nconst UNDO=/\\b(undo|re-?open|un-?tick|un-?check|back on( the)? list|put .{1,40} back)\\b/;\nif(UNDO.test(reply)){\n  const back=doneRows.filter(hit);\n  if(!back.length) return [{json:{writes:[],msg:doneRows.length?\"Who goes back on the list? Reply like 'undo Bob'.\":\"Nothing's been checked off yet.\"}}];\n  return [{json:{writes:back.map(x=>({row:x.row,value:'FALSE'})),msg:'Reopened: '+[...new Set(back.map(x=>x.name.split(' ')[0]))].join(', ')+'. '+(open.length+back.length)+' open now.'}}];\n}\n// A negation naming an already-ticked row is a correction (\"didn't call Bob back\"), not a\n// status report. Reopening is the safe direction: worst case is one extra digest line.\nif(negated){\n  const back=doneRows.filter(hit);\n  const stillOpen=open.filter(hit);\n  if(back.length&&!stillOpen.length){\n    return [{json:{writes:back.map(x=>({row:x.row,value:'FALSE'})),msg:'Got it - putting '+[...new Set(back.map(x=>x.name.split(' ')[0]))].join(', ')+' back on the list. '+(open.length+back.length)+' open now.'}}];\n  }\n}\nif(!open.length) return [{json:{writes:[],msg:'No open callbacks on the list right now.'+(negated&&doneRows.length?\" If I ticked someone off by mistake, reply 'undo <name>'.\":'')}}];\nif(!reply||/^(not yet|none|nothing|no|nope|not today)[.!]?$/.test(reply)) return [{json:{writes:[],msg:`No problem - keeping ${open.length} on the list.`}}];\n// EXCLUSION is checked before anything else can tick a row. \"Everyone expect John\" used to\n// check John off - the exact person {{OWNER_NAME}} said he had NOT done. \"expect\" is in here on purpose:\n// it is what both a thumb-typo and the ASR produce for \"except\".\nconst EXCL=/\\b(except|expect|apart from|other than|but not|besides|minus|save for|excluding|other then)\\b/;\nif(EXCL.test(reply)){\n  return [{json:{writes:[],msg:`Almost got it - reply with just the names you HAVE called back, and I'll check those off.`}}];\n}\nif(/\\ball\\b|all of them|did them all|done all|\\beveryone\\b|\\beverybody\\b|the lot|the rest/.test(reply)){\n  if(negated) return [{json:{writes:[],msg:`Almost got it - reply with just the names you HAVE called back, and I'll check those off.`}}];\n  return [{json:{writes:open.map(x=>({row:x.row,value:'TRUE'})),msg:`Nice - checked off all ${open.length}.`}}];\n}\n// \"Both\" is the natural answer to \"Which Bob - X or Y?\", but the parser is stateless and cannot\n// know it just asked. Match on intent: pick the duplicate-name group the reply names, or the only\n// duplicated group if it names none. Guarded by !negated so \"didn't do both\" never ticks.\nif(!negated&&/\\b(both|the two|either one|both of them)\\b/.test(reply)){\n  const groups={};\n  for(const x of open){ (groups[fn(x)]=groups[fn(x)]||[]).push(x); }\n  let keys=Object.keys(groups).filter(k=>groups[k].length>1&&reply.includes(k));\n  if(!keys.length) keys=Object.keys(groups).filter(k=>groups[k].length>1);\n  if(keys.length===1){\n    const g=groups[keys[0]];\n    return [{json:{writes:g.map(x=>({row:x.row,value:'TRUE'})),msg:`Checked off both ${g[0].name.split(' ')[0]}s. ${open.length-g.length} still open.`}}];\n  }\n}\nconst matched=new Set(); let ambiguous=null;\nfor(const x of open){\n  const f=fn(x);\n  const sameFirst=open.filter(o=>fn(o)===f);\n  const nameHit=f&&reply.includes(f);\n  const vehHit=fieldHit(x.vehicle);\n  const svcHit=fieldHit(x.reason);\n  if(nameHit&&sameFirst.length>1&&!(vehHit||svcHit)){ambiguous=sameFirst;continue;}\n  if(nameHit||vehHit||svcHit) matched.add(x.row);\n}\n// Negation plus an OPEN name is genuinely ambiguous - ask, never guess. A wrong tick-off used\n// to be unrecoverable; even with undo, guessing wrong costs {{OWNER_NAME}} a correction text.\nif(negated&&matched.size){\n  const who=open.filter(x=>matched.has(x.row)).map(x=>x.name.split(' ')[0]).join(', ');\n  return [{json:{writes:[],msg:`So I don't get it backwards - have you called ${who}, or still to do? Reply with only the names you HAVE done.`}}];\n}\nif(negated) return [{json:{writes:[],msg:`No problem - keeping ${open.length} on the list.`}}];\nif(ambiguous){\n  // Never offer a choice between two identical strings (\"Which Bob - Brakes or Brakes?\").\n  // Walk to the first field that actually differs; fall back to an ordinal if none do.\n  const uniq=a=>new Set(a.map(x=>String(x||'').toLowerCase().trim())).size===a.length;\n  const pick=[o=>o.reason,o=>o.vehicle,o=>o.logged,o=>o.pref].find(f=>uniq(ambiguous.map(f))&&ambiguous.every(o=>f(o)));\n  const opts=pick?ambiguous.map(pick):ambiguous.map((o,i)=>`the ${i?'second':'first'} one${o.logged?' from '+o.logged:''}`);\n  return [{json:{writes:[],msg:`Which ${ambiguous[0].name.split(' ')[0]} - ${opts.join(' or ')}?`}}];\n}\nif(!matched.size){\n  // \"Sarah\" -> \"Didn't catch which ones\" was misleading: Sarah was real and already ticked off.\n  const already=doneRows.filter(hit);\n  if(already.length){\n    const who=[...new Set(already.map(x=>x.name.split(' ')[0]))];\n    return [{json:{writes:[],msg:`${who.join(', ')} ${who.length>1?'are':'is'} already checked off. Reply 'undo ${who[0]}' to put ${who.length>1?'them':'that'} back on the list.`}}];\n  }\n  return [{json:{writes:[],msg:`Didn't catch which ones - reply with first names, or 'all'.`}}];\n}\nconst names=[...new Set(open.filter(x=>matched.has(x.row)).map(x=>x.name.split(' ')[0]))].join(', ');\nconst left=open.length-matched.size;\nreturn [{json:{writes:[...matched].map(r=>({row:r,value:'TRUE'})),msg:`Checked off: ${names}. ${left} still open.`}}];"
+    }
+   },
+   {
+    "id": "hu",
+    "name": "Has Updates?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     1130,
+     300
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "u1",
+        "leftValue": "={{ ($json.writes || []).length }}",
+        "rightValue": 0,
+        "operator": {
+         "type": "number",
+         "operation": "gt"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "bu",
+    "name": "Check Off Rows",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1360,
+     240
+    ],
+    "parameters": {
+     "method": "POST",
+     "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Find Sheet').first().json.files[0].id }}/values:batchUpdate",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "={{ JSON.stringify({valueInputOption:'RAW', data: $('Parse Reply').first().json.writes.map(w => ({range: 'Callback Queue!G'+w.row, values: [[w.value]]})) }) }}",
+     "options": {}
+    },
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "id": "rp",
+    "name": "Respond TwiML",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": [
+     1590,
+     300
+    ],
+    "parameters": {
+     "respondWith": "text",
+     "responseBody": "=<Response><Message>{{ $('Parse Reply').first().json.msg }}</Message></Response>",
+     "options": {
+      "responseCode": 200,
+      "responseHeaders": {
+       "entries": [
+        {
+         "name": "Content-Type",
+         "value": "text/xml"
+        }
+       ]
+      }
+     }
+    }
+   },
+   {
+    "id": "twsig",
+    "name": "Check Sender",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     640,
+     300
+    ],
+    "parameters": {
+     "jsCode": "const wh=$('Webhook').first().json;\nconst body=wh.body||{};\n// Compare on the last ten digits so {{OWNER_CELL}}, 5550100001 and 555-010-0001 all land the same.\nconst from=String(body.From||'').replace(/\\D/g,'').slice(-10);\nconst allowed='{{OWNER_CELL}}'.replace(/\\D/g,'').slice(-10);\nif(!from||from!==allowed){\n  return [{json:{valid:false,reason:'sender_not_allowed'}}];\n}\nreturn [{json:{valid:true,...wh}}];"
+    }
+   },
+   {
+    "id": "twok",
+    "name": "Sender Allowed?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     860,
+     300
+    ],
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "sv",
+        "leftValue": "={{ $json.valid }}",
+        "rightValue": true,
+        "operator": {
+         "type": "boolean",
+         "operation": "true",
+         "singleValue": true
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "tw403",
+    "name": "Respond 403",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": [
+     1080,
+     460
+    ],
+    "parameters": {
+     "respondWith": "json",
+     "responseBody": "={{ JSON.stringify({error:\"forbidden\"}) }}",
+     "options": {
+      "responseCode": 403
+     }
+    }
+   }
+  ],
+  "connections": {
+   "Webhook": {
+    "main": [
+     [
+      {
+       "node": "Check Sender",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Find Sheet": {
+    "main": [
+     [
+      {
+       "node": "Read Callback Queue",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Read Callback Queue": {
+    "main": [
+     [
+      {
+       "node": "Parse Reply",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Parse Reply": {
+    "main": [
+     [
+      {
+       "node": "Has Updates?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Has Updates?": {
+    "main": [
+     [
+      {
+       "node": "Check Off Rows",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Respond TwiML",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Check Off Rows": {
+    "main": [
+     [
+      {
+       "node": "Respond TwiML",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Check Sender": {
+    "main": [
+     [
+      {
+       "node": "Sender Allowed?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Sender Allowed?": {
+    "main": [
+     [
+      {
+       "node": "Find Sheet",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Respond 403",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "timezone": "{{TIMEZONE}}",
+   "errorWorkflow": "Gw85fnYshqGy4UUE"
+  }
+ },
+ "W7 Twilio Secret Bridge": {
+  "name": "Twilio — Secret Bridge",
+  "nodes": [
+   {
+    "id": "twbwh",
+    "name": "Webhook",
+    "type": "n8n-nodes-base.webhook",
+    "typeVersion": 2,
+    "position": [
+     0,
+     0
+    ],
+    "parameters": {
+     "httpMethod": "POST",
+     "path": "twilio-secret-bridge-7c21",
+     "responseMode": "responseNode",
+     "options": {}
+    },
+    "webhookId": "7c92f59d-96dc-4795-aa01-0c16743c94f3"
+   },
+   {
+    "id": "twbex",
+    "name": "Extract Secret",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 3.4,
+    "position": [
+     220,
+     0
+    ],
+    "parameters": {
+     "mode": "manual",
+     "assignments": {
+      "assignments": [
+       {
+        "id": "as1",
+        "name": "secret",
+        "value": "={{ $json.headers['x-twilio-token'] }}",
+        "type": "string"
+       }
+      ]
+     },
+     "options": {}
+    }
+   },
+   {
+    "id": "twbrt",
+    "name": "Return Secret",
+    "type": "n8n-nodes-base.respondToWebhook",
+    "typeVersion": 1,
+    "position": [
+     440,
+     0
+    ],
+    "parameters": {
+     "respondWith": "allIncomingItems",
+     "options": {}
+    }
+   }
+  ],
+  "connections": {
+   "Webhook": {
+    "main": [
+     [
+      {
+       "node": "Extract Secret",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Extract Secret": {
+    "main": [
+     [
+      {
+       "node": "Return Secret",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "errorWorkflow": "Gw85fnYshqGy4UUE"
+  }
+ },
+ "W6 Sheet Init": {
+  "name": "{{SHOP_NAME}} — Sheet Init (run once)",
+  "nodes": [
+   {
+    "parameters": {},
+    "id": "mt",
+    "name": "Run Once Manually",
+    "type": "n8n-nodes-base.manualTrigger",
+    "typeVersion": 1,
+    "position": [
+     240,
+     304
+    ]
+   },
+   {
+    "parameters": {
+     "url": "https://www.googleapis.com/drive/v3/files",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "q",
+        "value": "name = '{{SHOP_NAME}} — Makati Log' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
+       },
+       {
+        "name": "pageSize",
+        "value": "1"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "fs",
+    "name": "Find Sheet",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     464,
+     304
+    ],
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    },
+    "onError": "continueRegularOutput"
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "id": "s1",
+        "leftValue": "={{ ($json.files || []).length }}",
+        "rightValue": 0,
+        "operator": {
+         "type": "number",
+         "operation": "gt"
+        }
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "ex",
+    "name": "Sheet Exists?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     704,
+     304
+    ]
+   },
+   {
+    "parameters": {},
+    "id": "dn",
+    "name": "Already Exists — Done",
+    "type": "n8n-nodes-base.noOp",
+    "typeVersion": 1,
+    "position": [
+     912,
+     208
+    ]
+   },
+   {
+    "parameters": {
+     "method": "POST",
+     "url": "https://sheets.googleapis.com/v4/spreadsheets",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "{\"properties\": {\"title\": \"{{SHOP_NAME}} \\u2014 Makati Log\"}, \"sheets\": [{\"properties\": {\"title\": \"Call Log\"}}, {\"properties\": {\"title\": \"Callback Queue\"}}]}",
+     "options": {}
+    },
+    "id": "cr",
+    "name": "Create Spreadsheet",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     912,
+     432
+    ],
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    }
+   },
+   {
+    "parameters": {
+     "method": "POST",
+     "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.spreadsheetId }}/values:batchUpdate",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleSheetsOAuth2Api",
+     "sendBody": true,
+     "specifyBody": "json",
+     "jsonBody": "{\"valueInputOption\": \"RAW\", \"data\": [{\"range\": \"Call Log!A1:J1\", \"values\": [[\"Timestamp\", \"Call ID\", \"Type\", \"Name\", \"Phone\", \"Vehicle\", \"Service\", \"Summary\", \"Urgent\", \"Completed\"]]}, {\"range\": \"Callback Queue!A1:G1\", \"values\": [[\"Name\", \"Phone\", \"Vehicle\", \"Reason\", \"Date Added\", \"Preferred Callback Time\", \"Called Back?\"]]}]}",
+     "options": {}
+    },
+    "id": "hd",
+    "name": "Write Headers",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     1136,
+     432
+    ],
+    "credentials": {
+     "googleSheetsOAuth2Api": {
+      "id": "uFsWpaqwJgbu0Kww",
+      "name": "Google Sheets account 2"
+     }
+    }
+   }
+  ],
+  "connections": {
+   "Run Once Manually": {
+    "main": [
+     [
+      {
+       "node": "Find Sheet",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Find Sheet": {
+    "main": [
+     [
+      {
+       "node": "Sheet Exists?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Sheet Exists?": {
+    "main": [
+     [
+      {
+       "node": "Already Exists — Done",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     [
+      {
+       "node": "Create Spreadsheet",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Create Spreadsheet": {
+    "main": [
+     [
+      {
+       "node": "Write Headers",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "timezone": "{{TIMEZONE}}",
+   "errorWorkflow": "Gw85fnYshqGy4UUE",
+   "binaryMode": "separate"
+  }
+ },
+ "W8 Morning Schedule": {
+  "name": "{{SHOP_NAME}} — Morning Schedule",
+  "nodes": [
+   {
+    "parameters": {
+     "rule": {
+      "interval": [
+       {
+        "field": "cronExpression",
+        "expression": "45 8 * * *"
+       }
+      ]
+     }
+    },
+    "id": "n_cron",
+    "name": "Every Morning 8:45",
+    "type": "n8n-nodes-base.scheduleTrigger",
+    "typeVersion": 1.2,
+    "position": [
+     0,
+     0
+    ]
+   },
+   {
+    "parameters": {
+     "url": "https://www.googleapis.com/calendar/v3/calendars/{{CALENDAR_ID_ENC}}/events",
+     "authentication": "predefinedCredentialType",
+     "nodeCredentialType": "googleCalendarOAuth2Api",
+     "sendQuery": true,
+     "queryParameters": {
+      "parameters": [
+       {
+        "name": "timeMin",
+        "value": "={{ $now.setZone(\"{{TIMEZONE}}\").startOf(\"day\").toISO() }}"
+       },
+       {
+        "name": "timeMax",
+        "value": "={{ $now.setZone(\"{{TIMEZONE}}\").endOf(\"day\").toISO() }}"
+       },
+       {
+        "name": "singleEvents",
+        "value": "true"
+       },
+       {
+        "name": "orderBy",
+        "value": "startTime"
+       },
+       {
+        "name": "maxResults",
+        "value": "30"
+       }
+      ]
+     },
+     "options": {}
+    },
+    "id": "n_get",
+    "name": "Today's Events",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2,
+    "position": [
+     224,
+     0
+    ],
+    "credentials": {
+     "googleCalendarOAuth2Api": {
+      "id": "bAzflwDn30XOrcRM",
+      "name": "Google Calendar OAuth2 API"
+     }
+    }
+   },
+   {
+    "parameters": {
+     "jsCode": "\nconst items = ($input.first().json.items || []).filter(e => e.start && e.start.dateTime);\nconst fmt = iso => new Date(iso).toLocaleTimeString('en-US',\n  { timeZone: '{{TIMEZONE}}', hour: 'numeric', minute: '2-digit' });\n// W1 writes the description as: name | phone | vehicle | service | call_id:xxx\nconst parse = e => {\n  const parts = (e.description || '').split('|').map(s => s.trim());\n  return {\n    time: fmt(e.start.dateTime),\n    name: parts[0] || '(no name)',\n    phone: parts[1] || '',\n    vehicle: parts[2] || '',\n    service: parts[3] || '',\n  };\n};\nconst rows = items.map(parse);\nif (!rows.length) {\n  return [{ json: { count: 0, msg: '{{SHOP_NAME}} - nothing booked today.', skip: true } }];\n}\nlet msg = '{{SHOP_NAME}} - ' + rows.length + ' booked today\\n';\nrows.forEach((r, i) => {\n  msg += '\\n' + (i+1) + '. ' + r.time + '  ' + r.name;\n  if (r.phone) msg += '  ' + r.phone;\n  const detail = [r.vehicle, r.service].filter(Boolean).join(' - ');\n  if (detail) msg += '\\n   ' + detail;\n});\nreturn [{ json: { count: rows.length, msg, skip: false } }];\n"
+    },
+    "id": "n_build",
+    "name": "Build Schedule",
+    "type": "n8n-nodes-base.code",
+    "typeVersion": 2,
+    "position": [
+     448,
+     0
+    ]
+   },
+   {
+    "parameters": {
+     "conditions": {
+      "options": {
+       "caseSensitive": true,
+       "leftValue": "",
+       "typeValidation": "strict",
+       "version": 1
+      },
+      "conditions": [
+       {
+        "operator": {
+         "type": "boolean",
+         "operation": "false",
+         "singleValue": true
+        },
+        "leftValue": "={{ $json.skip }}",
+        "rightValue": "",
+        "id": "36cf8b6e-ae7b-4e1c-8bee-186d3bb83247"
+       }
+      ],
+      "combinator": "and"
+     },
+     "options": {}
+    },
+    "id": "n_if",
+    "name": "Anything booked?",
+    "type": "n8n-nodes-base.if",
+    "typeVersion": 2,
+    "position": [
+     672,
+     0
+    ]
+   },
+   {
+    "parameters": {
+     "from": "{{SMS_FROM}}",
+     "to": "{{OWNER_CELL}}",
+     "message": "={{ $json.msg }}",
+     "options": {}
+    },
+    "id": "n_sms",
+    "name": "Text {{OWNER_NAME}}",
+    "type": "n8n-nodes-base.twilio",
+    "typeVersion": 1,
+    "position": [
+     880,
+     -80
+    ],
+    "credentials": {
+     "twilioApi": {
+      "id": "iPlcmTnYSg91HdzQ",
+      "name": "Twilio account (connect me)"
+     }
+    }
+   },
+   {
+    "parameters": {
+     "fromEmail": "{{EMAIL_OWNER}}",
+     "toEmail": "{{EMAIL_OWNER}}",
+     "subject": "={{SHOP_NAME}} — {{ $json.count }} booked today",
+     "text": "={{ $json.msg }}",
+     "options": {}
+    },
+    "id": "n_mail",
+    "name": "Email Owner",
+    "type": "n8n-nodes-base.emailSend",
+    "typeVersion": 2,
+    "position": [
+     880,
+     80
+    ],
+    "webhookId": "151cc528-fccc-4b01-b67c-5d61a7ec4f5d",
+    "credentials": {
+     "smtp": {
+      "id": "GpQH7TVKg3t0rj2g",
+      "name": "SMTP account"
+     }
+    }
+   }
+  ],
+  "connections": {
+   "Today's Events": {
+    "main": [
+     [
+      {
+       "node": "Build Schedule",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Build Schedule": {
+    "main": [
+     [
+      {
+       "node": "Anything booked?",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   },
+   "Anything booked?": {
+    "main": [
+     [
+      {
+       "node": "Text {{OWNER_NAME}}",
+       "type": "main",
+       "index": 0
+      },
+      {
+       "node": "Email Owner",
+       "type": "main",
+       "index": 0
+      }
+     ],
+     []
+    ]
+   },
+   "Every Morning 8:45": {
+    "main": [
+     [
+      {
+       "node": "Today's Events",
+       "type": "main",
+       "index": 0
+      }
+     ]
+    ]
+   }
+  },
+  "settings": {
+   "executionOrder": "v1",
+   "binaryMode": "separate",
+   "timezone": "{{TIMEZONE}}",
+   "errorWorkflow": "Gw85fnYshqGy4UUE"
+  }
+ }
+}

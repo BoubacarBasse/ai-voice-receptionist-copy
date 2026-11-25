@@ -1,0 +1,155 @@
+# Makati client configuration — every value that differs between shops.
+#
+# Copy to clients/<slug>.yml and fill in from the interview. See ONBOARDING.md for the questions,
+# in the order worth asking them.
+#
+# NOTHING SECRET GOES IN THIS FILE. It holds names, numbers and IDs — the kind of thing printed on
+# a business card. API keys live in environment variables and in n8n's own credential store; see
+# README.md. If you find yourself pasting something that looks like a password, stop.
+
+# ---------------------------------------------------------------------------------------------
+# IDENTITY
+# ---------------------------------------------------------------------------------------------
+
+# Lowercase, no spaces, no punctuation. This is not cosmetic: it prefixes every n8n webhook path,
+# workflow name and Retell agent name. Two clients sharing an n8n instance with the same slug
+# collide — the second one's bookings would land in the first one's workflow.
+slug: bobsgarage
+
+business:
+  # What callers hear her call herself. This is the ONLY place the name lives — the
+  # slug stays in webhook paths and workflow names, where renaming breaks bookings.
+  assistant_name: Makati
+  # Completes "You are <name>, the AI receptionist for <shop>, <kind> in <city>".
+  kind: an auto repair shop
+  # true if the business sells vehicles. Turns on the dealership rule: buying, selling,
+  # trade-ins and appraisals become a callback for the owner and are NEVER refused.
+  sells_vehicles: false
+  name: Bob's Garage                    # exactly as she should say it out loud
+  owner_name: Bob                       # the name she uses on every call; replaces "Sam"
+  address: 123 Example Street, Unit 4   # include the unit — people miss back entrances
+  city: Brandon
+  timezone: America/Winnipeg            # IANA. Drives cron schedules AND spoken times
+
+# ---------------------------------------------------------------------------------------------
+# HOURS AND BOOKING RULES
+# ---------------------------------------------------------------------------------------------
+
+hours:
+  # Spoken aloud, so write it the way a person says it, not 09:00-18:00.
+  spoken: every day except Sunday, 9:00 AM to 6:00 PM
+  open: "09:00"
+  close: "18:00"
+  closed_days: [sunday]                 # lowercase day names
+
+  # The latest appointment that can still FINISH before close. If a job takes an hour and you shut
+  # at six, this is 17:00 — not 17:30. The pilot shop's system had these disagreeing and it booked jobs that
+  # could not be completed.
+  last_appointment: "17:00"
+
+  # How long one appointment blocks the calendar. Must be consistent with last_appointment above.
+  appointment_minutes: 60
+
+# ---------------------------------------------------------------------------------------------
+# SERVICES
+# ---------------------------------------------------------------------------------------------
+
+services:
+  # Free text she can offer and book.
+  offered:
+    - brake inspection and repair
+    - general diagnostics
+    - suspension
+    - exhaust
+
+  # THE CONDITIONAL SERVICE. Almost every shop has one job it will not do on its own but will
+  # happily do alongside other work. Listen for it in the interview.
+  #
+  # This has its own block of prompt text because getting her to hold the refusal through a
+  # customer pushing back — a named day, a time, and a "yes that's right" — took several rounds of
+  # live calls to get right. The proven wording is preserved; only the service name is substituted.
+  #
+  # DELETE THIS WHOLE `conditional:` BLOCK if the shop has no such service. The prompt section
+  # disappears with it. Do not invent a restriction to fill it in.
+  conditional:
+    service: oil change          # refused on its own
+    alongside_example: brakes    # a job it WOULD be done alongside, used in her example sentence
+
+# ---------------------------------------------------------------------------------------------
+# PHONE NUMBERS — E.164, all of them
+# ---------------------------------------------------------------------------------------------
+
+phone:
+  # The number Retell owns and Makati answers. Customers reach her only via this, either by
+  # dialling it or because the shop's public number forwards to it.
+  makati_line: "+15550000001"
+
+  # The owner's everyday phone. Gets booking alerts, the morning schedule and the callback digest.
+  # If the shop's public number forwards to Makati, this is usually that same number — texts are
+  # unaffected by call forwarding.
+  owner_cell: "+15550000002"
+
+  # Where Makati rings on a transfer. MUST NOT forward to makati_line, or she dials it, the
+  # forward returns the call to her, and it loops until the timeout drops the caller to a callback.
+  # Usually a second handset, which doubles as the owner's personal line.
+  transfer_to: "+15550000003"
+
+  # The Twilio number every text is sent FROM. The owner replies to this to clear callbacks.
+  sms_from: "+15550000004"
+
+  # Numbers allowed to send SMS commands ("all", "undo", a name). EXACT match, so list every
+  # handset the owner actually texts from or they get a silent 403 and assume it is broken.
+  sms_allowed: ["+15550000002", "+15550000003"]
+
+# ---------------------------------------------------------------------------------------------
+# EXTERNAL RESOURCES
+# ---------------------------------------------------------------------------------------------
+
+google:
+  # A calendar dedicated to the shop. NOT anyone's personal calendar: Makati reads every timed
+  # event on it as a booking, and reports them to the owner. The pilot shop's system sent him the builder's
+  # personal recurring events as customer appointments because this was shared.
+  calendar_id: xxxxxxxx@group.calendar.google.com
+
+  # Created by provision/deploy.py if absent. Two tabs: Call Log, Callback Queue.
+  spreadsheet_name: Bob's Garage — Makati Log
+
+email:
+  # Booking summaries and callback notifications.
+  owner: owner@example.com
+  # Failure alarms. Deliberately separable: the person who fixes a broken credential is usually
+  # not the shop owner, and paging an owner about a Twilio outage teaches him to ignore alerts.
+  alerts: you@example.com
+
+# ---------------------------------------------------------------------------------------------
+# COMPLIANCE
+# ---------------------------------------------------------------------------------------------
+
+compliance:
+  # She tells every caller the line is recorded. This is the retention period behind that promise,
+  # set on the Retell agent. Required under PIPEDA — a stated period with nothing configured
+  # behind it is worse than saying nothing.
+  recording_retention_days: 30
+
+# ---------------------------------------------------------------------------------------------
+# KNOWLEDGE BASE
+# ---------------------------------------------------------------------------------------------
+
+# Facts she may state. ANYTHING NOT LISTED, she refuses with "I'd have to check with <owner>" and
+# takes a callback. That refusal is the single most valuable behaviour in the system — leave a
+# field null rather than guessing, because a guess becomes something she says to a customer.
+# null means "not answered yet"; the empty string means "answered, and the answer is nothing".
+knowledge:
+  parking: null
+  payment_methods: null
+  towing: null
+  loaner_or_shuttle: null
+  after_hours_dropoff: null
+  deposit_required: null
+  warranty: null
+  diesel: null
+  ev: null
+  alignments: null
+  tire_storage: null
+  glass: null
+  financing: null
