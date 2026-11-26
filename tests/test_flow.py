@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 # Adapted from the pilot's tests for the template. The originals belong to the live pilot and stay private.
 # Reads the rendered client config rather than hardcoded values:
 #     python3 tests/test_flow.py clients/<slug>.yml
@@ -13,7 +13,6 @@ def _client():
     return cfg
 CLIENT = _client()
 SLUG = CLIENT['slug']
-#!/usr/bin/env python3
 """Static checks on the deployed Retell conversation flow.
 
 Three fix passes in a row shipped a flow defect that only a live voice call could reveal:

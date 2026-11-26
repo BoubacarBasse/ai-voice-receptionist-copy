@@ -22,7 +22,7 @@
    {
     "parameters": {
      "method": "POST",
-     "url": "https://automa1ons.app.n8n.cloud/webhook/retell-secret-bridge-4f9d",
+     "url": "https://{{WEBHOOK_HOST}}/webhook/retell-secret-bridge-4f9d",
      "authentication": "predefinedCredentialType",
      "nodeCredentialType": "httpHeaderAuth",
      "options": {}
@@ -2059,7 +2059,7 @@
     ],
     "parameters": {
      "method": "POST",
-     "url": "https://automa1ons.app.n8n.cloud/webhook/retell-secret-bridge-4f9d",
+     "url": "https://{{WEBHOOK_HOST}}/webhook/retell-secret-bridge-4f9d",
      "authentication": "predefinedCredentialType",
      "nodeCredentialType": "httpHeaderAuth",
      "options": {}

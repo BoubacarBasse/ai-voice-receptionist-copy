@@ -26,6 +26,8 @@ phone number customers currently ring.
 | "Full address, including a unit number if there is one?" | `business.address` | Include the unit. The pilot shop's customers were driving past because his is at the back |
 | "What city?" | `business.city` | Used for seasonal/climate advice in the car knowledge |
 | — | `business.timezone` | IANA, e.g. `America/Winnipeg`. Drives cron schedules **and** spoken times. Get it wrong and the morning text arrives at 3 AM |
+| — | `infra.n8n_host` | The n8n instance hosting the workflows. Every webhook URL in the flow points here — wrong value and she tells callers a booking worked that never left the building |
+| — | `infra.screener_agent_id` | The Retell agent that announces the caller to the owner on a transfer. Create it before you render |
 
 Pick the **slug** yourself: lowercase, no spaces. It prefixes every webhook path and workflow name.
 Two clients sharing an n8n instance with the same slug collide.

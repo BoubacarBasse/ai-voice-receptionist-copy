@@ -1061,7 +1061,7 @@
     "agentic_transfer_config": {
      "transfer_agent": {
       "agent_version": 1,
-      "agent_id": "agent_f01061b40269255604ccaf3376"
+      "agent_id": "{{SCREENER_AGENT_ID}}"
      },
      "transfer_timeout_ms": 15000,
      "action_on_timeout": "cancel_transfer"
@@ -1424,7 +1424,7 @@
      "preferred_time"
     ]
    },
-   "url": "https://automa1ons.app.n8n.cloud/webhook/{{SLUG}}-appointment"
+   "url": "https://{{WEBHOOK_HOST}}/webhook/{{SLUG}}-appointment"
   },
   {
    "tool_id": "tool_update_appointment",
@@ -1456,7 +1456,7 @@
      "new_time"
     ]
    },
-   "url": "https://automa1ons.app.n8n.cloud/webhook/{{SLUG}}-appointment"
+   "url": "https://{{WEBHOOK_HOST}}/webhook/{{SLUG}}-appointment"
   },
   {
    "tool_id": "tool_cancel_appointment",
@@ -1478,7 +1478,7 @@
      "event_id"
     ]
    },
-   "url": "https://automa1ons.app.n8n.cloud/webhook/{{SLUG}}-appointment"
+   "url": "https://{{WEBHOOK_HOST}}/webhook/{{SLUG}}-appointment"
   },
   {
    "tool_id": "tool_get_current_datetime",
@@ -1492,7 +1492,7 @@
     "type": "object",
     "properties": {}
    },
-   "url": "https://automa1ons.app.n8n.cloud/webhook/{{SLUG}}-appointment"
+   "url": "https://{{WEBHOOK_HOST}}/webhook/{{SLUG}}-appointment"
   },
   {
    "tool_id": "tool_find_appointment",
@@ -1511,7 +1511,7 @@
      }
     }
    },
-   "url": "https://automa1ons.app.n8n.cloud/webhook/{{SLUG}}-appointment"
+   "url": "https://{{WEBHOOK_HOST}}/webhook/{{SLUG}}-appointment"
   },
   {
    "tool_id": "tool_log_callback",
@@ -1551,7 +1551,7 @@
      "reason"
     ]
    },
-   "url": "https://automa1ons.app.n8n.cloud/webhook/{{SLUG}}-appointment"
+   "url": "https://{{WEBHOOK_HOST}}/webhook/{{SLUG}}-appointment"
   }
  ],
  "model_choice": {

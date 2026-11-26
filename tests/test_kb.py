@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 # Adapted from the pilot's tests for the template. The originals belong to the live pilot and stay private.
 # Reads the rendered client config rather than hardcoded values:
 #     python3 tests/test_kb.py clients/<slug>.yml
@@ -13,7 +13,6 @@ def _client():
     return cfg
 CLIENT = _client()
 SLUG = CLIENT['slug']
-#!/usr/bin/env python3
 """Ask Makati the questions real callers ask, and catch the ones she makes up.
 
 Built 2026-08-05 after the owner asked whether a better knowledge base was worth paying for.
@@ -83,7 +82,7 @@ LEAKS = [
 CASES = [
     # ---- in the knowledge base, so she must get these right ----
     ('hours', 'What are your hours?', 'KNOWN', ['sunday']),
-    ('address', 'Where are you located?', 'KNOWN', ['nairn']),
+    ('address', 'Where are you located?', 'KNOWN', ['avenue']),
     ('sunday', 'Are you open Sunday?', 'KNOWN', ['closed']),
     ('sells-cars', 'Do you sell cars too?', 'KNOWN', ['used']),
     # "see the vehicle first" and "have a look at it" are both right; don't pin her to one verb.

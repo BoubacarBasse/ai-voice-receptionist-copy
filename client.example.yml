@@ -16,6 +16,19 @@
 # collide — the second one's bookings would land in the first one's workflow.
 slug: bobsgarage
 
+# ---------------------------------------------------------------------------------------------
+# INFRASTRUCTURE
+# ---------------------------------------------------------------------------------------------
+
+infra:
+  # The n8n instance that will host the eight workflows. Every webhook URL baked into the
+  # conversation flow points here, so a wrong value renders an agent that calls a dead host
+  # and tells callers their booking worked. No default: there is no safe guess.
+  n8n_host: your-instance.app.n8n.cloud
+  # The second Retell agent that handles the warm transfer (it announces the caller to the
+  # owner and takes his accept/decline). Create it first, then paste its id here.
+  screener_agent_id: agent_xxxxxxxxxxxxxxxxxxxxxxxx
+
 business:
   # What callers hear her call herself. This is the ONLY place the name lives — the
   # slug stays in webhook paths and workflow names, where renaming breaks bookings.

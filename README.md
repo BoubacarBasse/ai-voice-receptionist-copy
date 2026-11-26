@@ -1,16 +1,17 @@
 # AI Voice Receptionist for Auto Repair Shops
 
-**A production AI phone agent that has been answering real customer calls for an independent auto
-shop since August 2026, packaged as a template that can be set up for a new shop from one config file.**
+**An AI phone agent that ran in production for five weeks, answering real customer calls for an
+independent auto shop, packaged as a template that can be set up for a new shop from one config file.**
 
 She answers the calls the owner misses. She books, reschedules and cancels appointments on the
 shop's live Google Calendar and takes callbacks. When a caller asks for the owner, she finds out
 why first, and she texts the owner what he needs to know. She will not quote a price and she will
 not make up a fact.
 
-> This repo is the **reusable template**. The live client's own deployment, call logs and build
-> history are kept private because they contain the client's data. The client is anonymised as
-> "the pilot shop" throughout.
+> This repo is the **reusable template**. The pilot client's own deployment, call logs and build
+> history stay private because they hold the client's data, and the client is anonymised as "the
+> pilot shop" throughout. The pilot ran 2026-08-15 to 2026-09-23. I switched it off on purpose —
+> [here's why](#what-the-pilot-proved-and-why-i-switched-it-off).
 
 ---
 
@@ -18,10 +19,38 @@ not make up a fact.
 
 | | |
 |---|---|
-| **Live since** | 2026-08-15, on the shop's real public number (it rings the owner first and Makati picks up when he can't) |
-| **Factual accuracy** | **12/25 → 29/29** on a grounding test suite (now 38 cases). Before the fix she made up a repair warranty, a safety-inspection service and tire storage, and callers believed all three |
+| **Ran in production** | 2026-08-15 to 2026-09-23 — five weeks on the shop's real public number. It rang the owner first and she picked up what he missed |
+| **Factual accuracy** | **12/25 → 29/29** on the grounding suite, since grown to 38 cases. Before the fix she invented a repair warranty, a safety-inspection service and tire storage, and callers believed all three |
 | **Scale of the build** | 8 production n8n workflows · 102 nodes · a 36-node conversation flow · 6 backend tools · 5 external systems |
-| **Running cost** | about $0.16 per call minute, plus about $2 a month per number. Roughly $150/month at 15 calls a day |
+| **Running cost** | **$47.85** for the go-live month, everything in. $26.94 of that was LLM text at $0.015 a message — over half the bill, and more than the voice minutes |
+
+## What the pilot proved, and why I switched it off
+
+The system worked. The problem I picked didn't.
+
+In five weeks she answered 81 calls from numbers outside the shop. 19 of those callers said a
+word. Three calls produced anything at all: one booking, one sales lead, one transfer that
+connected. The month's bill was $47.85.
+
+The reason is in the call log. A missed call only costs a shop money if the caller is new and the
+job can't wait. At an established shop, almost nobody is either. They're regulars, their work can
+wait, and when nobody picks up they just call back.
+
+One regular called four times over 18 days and never left a message once — *"It's just Mark
+calling. Nothing really important. I'll get back to you later."* Another number called four times,
+three of them inside 70 minutes. A third called five times and never said a word. The people who
+wanted the owner were going to reach him with or without me. The missed call was a delay, not a
+lost customer.
+
+Two other things worth knowing. Most of the volume wasn't customers: in the last month of the
+pilot, 32 of 75 answered calls came from out-of-province area codes, nearly all hanging up at the
+same 17-second mark. And the cost wasn't where I expected it — $26.94 of that $47.85 was LLM text
+at $0.015 a message. What sets the unit economics of a voice agent is cost per turn, not talk time.
+
+So I switched it off instead of tuning it further. The same system is worth a lot more pointed
+somewhere else. Missed-call recovery pays when the caller is new and the job can't wait. Regulars
+call back; someone with no heat in January calls the next contractor. That's the version I'm
+building now, for HVAC.
 
 ## Architecture
 
@@ -100,8 +129,8 @@ python3 provision/verify.py clients/<slug>.yml      # sends a signed test call e
 
 [ONBOARDING.md](ONBOARDING.md) is the owner interview: each question, the field it fills, and
 why it matters. I also kept a private fidelity check that renders the pilot's config and compares
-it with the system that is actually running, so the template can't drift away from the version
-that works.
+it against the system that was deployed, so the template can't drift away from the version that
+ran.
 
 ## How I built it
 
@@ -109,8 +138,8 @@ I did the client work and the system design myself: discovery with the shop owne
 conversation design, deciding which guardrails exist and why, the test strategy, deployment and
 go-live, and reading the live call logs every day to find the next fix. I wrote the code with
 **Claude Code** as my pair programmer, working from specifications and failure reports I wrote.
-I worked this way on purpose. A small team using AI tools can design, build, test and deploy a
-system like this, and keep running it in production.
+I worked this way on purpose. A small team using AI tools can design, build, test, deploy and run
+a system like this in production, and read the data well enough to know when to stop.
 
 **Stack:** Retell AI · n8n · Twilio · Google Calendar & Sheets API · Python · Claude Code
 

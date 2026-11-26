@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 # Adapted from the pilot's tests for the template. The originals belong to the live pilot and stay private.
 # Reads the rendered client config rather than hardcoded values:
 #     python3 tests/test_w1.py clients/<slug>.yml
@@ -13,12 +13,11 @@ def _client():
     return cfg
 CLIENT = _client()
 SLUG = CLIENT['slug']
-#!/usr/bin/env python3
-"""Signed end-to-end tests for the Makati Appointment Logger webhook."""
+"""Signed end-to-end tests for the Appointment Logger webhook."""
 import json, hmac, hashlib, os, sys, time, urllib.request, datetime
 
 KEY = os.environ['RETELL_API_KEY']
-URL = "https://automa1ons.app.n8n.cloud/webhook/%s-appointment' % SLUG + '"
+URL = 'https://%s/webhook/%s-appointment' % (CLIENT['infra']['n8n_host'], SLUG)
 
 def call(body):
     raw = json.dumps(body, separators=(',', ':'))

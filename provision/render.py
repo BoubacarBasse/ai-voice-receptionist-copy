@@ -27,6 +27,10 @@ CORE = os.path.join(ROOT, 'core')
 # Every field render.py will not proceed without, as dotted paths.
 REQUIRED = [
     'slug',
+    # Both were hardcoded to the pilot's own instance until 11-26, so render.py produced a flow
+    # that pointed at my n8n workspace no matter whose config it read. A client deployed from it
+    # would have had every booking POST to a host they do not own.
+    'infra.n8n_host', 'infra.screener_agent_id',
     'business.name', 'business.owner_name', 'business.address', 'business.city',
     'business.timezone',
     # The spoken name and what kind of business this is. Both reach a caller in the first
@@ -187,6 +191,11 @@ def substitutions(cfg):
         'CONDITIONAL_ALONGSIDE': cond.get('alongside_example') or 'the other work',
         'CLOSED_DAYS_SPOKEN': spoken_days(get(cfg, 'hours.closed_days') or []),
         'SLUG': cfg['slug'],
+        # WEBHOOK_HOST, not N8N_HOST: apply() matches {{[A-Z_]+}}, so a placeholder with a
+        # digit in it is silently never substituted and slips past the leftover-placeholder
+        # check as well. The first version of this line shipped {{N8N_HOST}} into the build.
+        'WEBHOOK_HOST': get(cfg, 'infra.n8n_host'),
+        'SCREENER_AGENT_ID': get(cfg, 'infra.screener_agent_id'),
         'SHOP_NAME': get(cfg, 'business.name'),
         'OWNER_NAME': get(cfg, 'business.owner_name'),
         'SHOP_ADDRESS': get(cfg, 'business.address'),

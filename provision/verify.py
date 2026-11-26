@@ -16,7 +16,6 @@ ROOT = os.path.join(HERE, os.pardir)
 sys.path.insert(0, HERE)
 from render import load_yaml, get      # noqa: E402
 
-N8N = 'https://automa1ons.app.n8n.cloud/api/v1'
 RETELL = 'https://api.retellai.com'
 results = []
 
@@ -38,6 +37,8 @@ def main():
         sys.exit('usage: verify.py clients/<slug>.yml')
     cfg = load_yaml(args[0])
     slug = cfg['slug']
+    host = get(cfg, 'infra.n8n_host')
+    n8n = 'https://%s/api/v1' % host
     nk, rk = os.environ.get('N8N_API_KEY'), os.environ.get('RETELL_API_KEY')
     if not (nk and rk):
         sys.exit('N8N_API_KEY and RETELL_API_KEY must be set.')
@@ -51,7 +52,7 @@ def main():
 
     # 1. Workflows exist AND are active. An inactive workflow is a webhook that 404s, which
     #    presents to the caller as her saying she booked something that never happened.
-    live = {w['name']: w for w in (api(N8N, '/workflows?limit=250', nk).get('data') or [])}
+    live = {w['name']: w for w in (api(n8n, '/workflows?limit=250', nk).get('data') or [])}
     for label, wid, name in dep['workflows']:
         w = live.get(name)
         check('workflow %s' % label, bool(w) and w.get('active'),
@@ -88,7 +89,7 @@ def main():
     # 5. The HMAC secret. The Retell API key doubles as the webhook signing secret, so a rotation
     #    that missed the n8n credential rejects every call with a 401 and announces nothing.
     import hmac, hashlib, time
-    url = 'https://automa1ons.app.n8n.cloud/webhook/%s-appointment' % slug
+    url = 'https://%s/webhook/%s-appointment' % (host, slug)
     body = json.dumps({'name': 'get_current_datetime', 'args': {},
                        'call': {'call_id': 'verify'}}, separators=(',', ':'))
     ts = str(int(time.time() * 1000))

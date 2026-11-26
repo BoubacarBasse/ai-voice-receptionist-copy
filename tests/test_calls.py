@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 # Adapted from the pilot's tests for the template. The originals belong to the live pilot and stay private.
 # Reads the rendered client config rather than hardcoded values:
 #     python3 tests/test_calls.py clients/<slug>.yml
@@ -13,7 +13,6 @@ def _client():
     return cfg
 CLIENT = _client()
 SLUG = CLIENT['slug']
-#!/usr/bin/env python3
 """Run whole conversations past Makati and check what she DID, not what she said.
 
 Every serious defect in this project has the same shape: she tells the caller something is done and

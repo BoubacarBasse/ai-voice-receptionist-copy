@@ -27,7 +27,6 @@ ROOT = os.path.join(HERE, os.pardir)
 sys.path.insert(0, HERE)
 from render import load_yaml, check, get      # noqa: E402
 
-N8N = 'https://automa1ons.app.n8n.cloud/api/v1'
 RETELL = 'https://api.retellai.com'
 
 # Every credential a client's workflows reference. deploy.py creates the workflows; a human
@@ -66,6 +65,9 @@ def main():
     dry = '--dry-run' in sys.argv
     cfg = check(load_yaml(args[0]), args[0])
     slug = cfg['slug']
+    # From the config, never a constant: this script POSTs eight workflows somewhere. Hardcoded,
+    # it would have created every client's workflows in whichever account built the template.
+    n8n = 'https://%s/api/v1' % get(cfg, 'infra.n8n_host')
 
     if slug == 'pilot-shop':
         sys.exit("REFUSING: clients/pilot-shop.yml is a reference config, not a deployable one.\n"
@@ -90,7 +92,7 @@ def main():
     print('  %d n8n workflows, %d flow nodes' % (len(workflows), len(flow['nodes'])))
     print('  webhook paths: %s-appointment, %s-call-log, %s-callback-reply' % (slug, slug, slug))
 
-    existing = {w['name'] for w in (api(N8N, '/workflows?limit=250', key=nk).get('data') or [])}
+    existing = {w['name'] for w in (api(n8n, '/workflows?limit=250', key=nk).get('data') or [])}
     clash = [w['name'] for w in workflows.values() if w['name'] in existing]
     if clash:
         sys.exit('REFUSING: these workflow names already exist on this n8n instance:\n   %s\n'
@@ -109,7 +111,7 @@ def main():
 
     created = []
     for label, w in workflows.items():
-        r = api(N8N, '/workflows', 'POST', w, key=nk)
+        r = api(n8n, '/workflows', 'POST', w, key=nk)
         created.append((label, r.get('id'), w['name']))
         print('   created %-30s %s' % (w['name'], r.get('id')))
 
