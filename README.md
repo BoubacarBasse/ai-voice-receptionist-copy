@@ -1,8 +1,9 @@
 # AI Voice Receptionist for Auto Repair Shops
 
-**An AI phone agent that ran in production for an independent auto shop, answering real customer
-calls for five weeks. It is being re-scoped with the owner for a second deployment on the
-dealership side. Packaged as a template that can be set up for a new shop from one config file.**
+**An AI phone agent built for an independent auto shop in Winnipeg, where it ran live on the
+shop's own number and answered real customer calls. It is being re-scoped with the owner for a
+second deployment on the dealership side. Packaged as a template that can be set up for a new shop
+from one config file.**
 
 She answers the calls the owner misses. She books, reschedules and cancels appointments on the
 shop's live Google Calendar and takes callbacks. When a caller asks for the owner, she finds out
@@ -11,9 +12,10 @@ not make up a fact.
 
 > This repo is the **reusable template**. The pilot client's own deployment, call logs and build
 > history stay private because they hold the client's data, and the client is anonymised as "the
-> pilot shop" throughout. The first run was 2026-08-15 to 2026-09-23. I took it offline on
-> purpose — [here's why](#what-the-pilot-proved-and-why-i-switched-it-off) — and it goes back up
-> shortly with a different job.
+> pilot shop" throughout. I have worked with the shop since the summer of 2026. The agent went
+> live on 2026-08-15 and is offline at the moment, which was my decision —
+> [here's why](#what-the-pilot-proved-and-why-i-switched-it-off) — and it goes back up shortly
+> with a different job.
 
 ---
 
@@ -21,7 +23,7 @@ not make up a fact.
 
 | | |
 |---|---|
-| **In production** | 2026-08-15 to 2026-09-23 — five weeks on the shop's real public number. It rang the owner first and she picked up what he missed. Offline now while the second version is scoped with the owner |
+| **In production** | Live on the shop's real public number from 2026-08-15. It rang the owner first and she picked up what he missed. Offline at the moment while the second version is scoped with the owner |
 | **Factual accuracy** | **12/25 → 29/29** on the grounding suite, since grown to 38 cases. Before the fix she invented a repair warranty, a safety-inspection service and tire storage, and callers believed all three |
 | **Scale of the build** | 8 production n8n workflows · 102 nodes · a 36-node conversation flow · 6 backend tools · 5 external systems |
 | **Running cost** | **$47.85** for the go-live month, everything in. $26.94 of that was LLM text at $0.015 a message — over half the bill, and more than the voice minutes |
@@ -30,9 +32,9 @@ not make up a fact.
 
 The system worked. The problem I picked didn't.
 
-In five weeks she answered 81 calls from numbers outside the shop. 19 of those callers said a
-word. Three calls produced anything at all: one booking, one sales lead, one transfer that
-connected. The month's bill was $47.85.
+She answered 81 calls from numbers outside the shop. 19 of those callers said a word. Three calls
+produced anything at all: one booking, one sales lead, one transfer that connected. The month's
+bill was $47.85.
 
 The reason is in the call log. A missed call only costs a shop money if the caller is new and the
 job can't wait. At an established shop, almost nobody is either. They're regulars, their work can
