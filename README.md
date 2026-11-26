@@ -1,7 +1,8 @@
 # AI Voice Receptionist for Auto Repair Shops
 
-**An AI phone agent that ran in production for five weeks, answering real customer calls for an
-independent auto shop, packaged as a template that can be set up for a new shop from one config file.**
+**An AI phone agent that ran in production for an independent auto shop, answering real customer
+calls for five weeks. It is being re-scoped with the owner for a second deployment on the
+dealership side. Packaged as a template that can be set up for a new shop from one config file.**
 
 She answers the calls the owner misses. She books, reschedules and cancels appointments on the
 shop's live Google Calendar and takes callbacks. When a caller asks for the owner, she finds out
@@ -10,8 +11,9 @@ not make up a fact.
 
 > This repo is the **reusable template**. The pilot client's own deployment, call logs and build
 > history stay private because they hold the client's data, and the client is anonymised as "the
-> pilot shop" throughout. The pilot ran 2026-08-15 to 2026-09-23. I switched it off on purpose —
-> [here's why](#what-the-pilot-proved-and-why-i-switched-it-off).
+> pilot shop" throughout. The first run was 2026-08-15 to 2026-09-23. I took it offline on
+> purpose — [here's why](#what-the-pilot-proved-and-why-i-switched-it-off) — and it goes back up
+> shortly with a different job.
 
 ---
 
@@ -19,7 +21,7 @@ not make up a fact.
 
 | | |
 |---|---|
-| **Ran in production** | 2026-08-15 to 2026-09-23 — five weeks on the shop's real public number. It rang the owner first and she picked up what he missed |
+| **In production** | 2026-08-15 to 2026-09-23 — five weeks on the shop's real public number. It rang the owner first and she picked up what he missed. Offline now while the second version is scoped with the owner |
 | **Factual accuracy** | **12/25 → 29/29** on the grounding suite, since grown to 38 cases. Before the fix she invented a repair warranty, a safety-inspection service and tire storage, and callers believed all three |
 | **Scale of the build** | 8 production n8n workflows · 102 nodes · a 36-node conversation flow · 6 backend tools · 5 external systems |
 | **Running cost** | **$47.85** for the go-live month, everything in. $26.94 of that was LLM text at $0.015 a message — over half the bill, and more than the voice minutes |
@@ -47,10 +49,19 @@ pilot, 32 of 75 answered calls came from out-of-province area codes, nearly all 
 same 17-second mark. And the cost wasn't where I expected it — $26.94 of that $47.85 was LLM text
 at $0.015 a message. What sets the unit economics of a voice agent is cost per turn, not talk time.
 
-So I switched it off instead of tuning it further. The same system is worth a lot more pointed
-somewhere else. Missed-call recovery pays when the caller is new and the job can't wait. Regulars
-call back; someone with no heat in January calls the next contractor. That's the version I'm
-building now, for HVAC.
+So I took it offline instead of tuning it further, and the finding pointed at two better jobs for
+the same infrastructure.
+
+**The second version, going back up at the same shop.** Same owner, different side of his
+business. The repair shop did not need someone to catch missed calls. The dealership needs someone
+to start conversations: reactivating past customers, asking for referrals, following up on
+trade-in and sales enquiries. That moves it from inbound to outbound and from answering to
+earning, which is the only version worth paying for. I'm gathering those requirements with the
+owner now.
+
+**Where the inbound version does pay.** Missed-call recovery earns its keep when the caller is new
+and the job can't wait. Regulars call back; someone with no heat in January calls the next
+contractor. So the inbound build is going to HVAC, not to another repair shop.
 
 ## Architecture
 
